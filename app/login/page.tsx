@@ -1,6 +1,32 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (!email || !password) {
+      setError("Preencha e-mail e senha para continuar.");
+      return;
+    }
+
+    setLoading(true);
+    // Simula autenticação — substituir por NextAuth futuramente
+    setTimeout(() => {
+      router.push("/agenda");
+    }, 600);
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Painel de marca */}
@@ -31,7 +57,8 @@ export default function LoginPage() {
               Cuidando do seu corpo com excelência
             </h2>
             <p className="text-[14px] text-[var(--color-pine-100)] mt-4 max-w-sm">
-              Atendimento fisioterapêutico humanizado, focado na sua recuperação, funcionalidade e qualidade de vida.
+              Atendimento fisioterapêutico humanizado, focado na sua recuperação,
+              funcionalidade e qualidade de vida.
             </p>
           </div>
 
@@ -55,7 +82,7 @@ export default function LoginPage() {
             Faça login para acessar sua agenda
           </p>
 
-          <form className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label htmlFor="email" className="block text-[13px] font-medium mb-1.5">
                 E-mail
@@ -64,6 +91,8 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] px-3.5 py-2.5 text-[14px] outline-none focus:border-[var(--color-pine-400)] focus:ring-2 focus:ring-[var(--color-pine-100)]"
               />
             </div>
@@ -81,15 +110,22 @@ export default function LoginPage() {
                 id="senha"
                 type="password"
                 placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] px-3.5 py-2.5 text-[14px] outline-none focus:border-[var(--color-pine-400)] focus:ring-2 focus:ring-[var(--color-pine-100)]"
               />
             </div>
 
+            {error && (
+              <p className="text-[12px] text-[var(--color-terracotta-600)] -mt-1">{error}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full rounded-[10px] bg-[var(--color-pine-600)] text-white text-[14px] font-medium py-2.5 mt-2 hover:bg-[var(--color-pine-700)] transition-colors"
+              disabled={loading}
+              className="w-full rounded-[10px] bg-[var(--color-pine-600)] text-white text-[14px] font-medium py-2.5 mt-2 hover:bg-[var(--color-pine-700)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Entrar
+              {loading ? "Entrando…" : "Entrar"}
             </button>
           </form>
 

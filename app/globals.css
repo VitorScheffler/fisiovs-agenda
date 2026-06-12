@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
 :root {
   /* Brand - paleta FisioVS (turquesa + dourado) */
   --color-pine-50: #e0f7f7;

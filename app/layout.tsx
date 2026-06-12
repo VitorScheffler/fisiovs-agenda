@@ -5,6 +5,7 @@ import "@fontsource/fraunces/400.css";
 import "@fontsource/fraunces/500.css";
 import "@fontsource/fraunces/600.css";
 import "./globals.css";
+import { AppProvider } from "@/context/AppContext";
 
 export const metadata: Metadata = {
   title: "FisioVS | Agenda",
@@ -18,7 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppProvider>{children}</AppProvider>
+      </body>
     </html>
   );
 }

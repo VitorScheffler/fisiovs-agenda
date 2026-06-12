@@ -1,4 +1,7 @@
+"use client";
+
 import { Appointment, categoryLabels } from "@/lib/types";
+import { useApp } from "../context/AppContext";
 
 const categoryStyles: Record<Appointment["category"], string> = {
   avaliacao: "bg-[var(--color-cat-avaliacao-bg)] text-[var(--color-cat-avaliacao-fg)]",
@@ -9,11 +12,13 @@ const categoryStyles: Record<Appointment["category"], string> = {
 };
 
 export function AppointmentCard({ appointment }: { appointment: Appointment }) {
+  const { openAppointment } = useApp();
   const isPending = appointment.status === "pendente";
 
   return (
     <button
-      className={`group h-full w-full text-left rounded-[10px] px-2.5 py-2 flex flex-col gap-0.5 transition-transform hover:-translate-y-0.5 ${
+      onClick={() => openAppointment(appointment)}
+      className={`group h-full w-full text-left rounded-[10px] px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
         categoryStyles[appointment.category]
       } ${isPending ? "border border-dashed border-[var(--color-terracotta-600)]" : ""}`}
     >

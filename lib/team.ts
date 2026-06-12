@@ -1,0 +1,28 @@
+export const TEAM = [
+  {
+    id: "t1",
+    userId: "u1",
+    name: "Vitoria Raiane Scheffler",
+    role: "Fisioterapeuta",
+    specialty: "Ortopédica e Esportiva",
+    crefito: "CREFITO-5 / 123456-F",
+    email: "vitoria@fisiovs.com",
+    phone: "(51) 99100-0001",
+    status: "ativo",
+    since: "Jun 2026",
+    initials: "VS",
+    color: "bg-[var(--color-pine-100)] text-[var(--color-pine-700)]",
+  },
+  {
+    id: "t2",
+    userId: "u2",
+    name: "Vitor Scheffler",
+    role: "TI",
+    email: "vitor@fisiovs.com",
+    phone: "(51) 99100-0004",
+    status: "ativo",
+    since: "Jun 2026",
+    initials: "VS",
+    color: "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]",
+  },
+];

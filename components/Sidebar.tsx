@@ -9,6 +9,12 @@ type NavItem = {
 };
 
 const icons = {
+  home: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
   agenda: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4" width="18" height="17" rx="2" />
@@ -41,18 +47,30 @@ const icons = {
       <path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4.5a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h0a1.7 1.7 0 0 0 1-1.55V4.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v0a1.7 1.7 0 0 0 1.55 1H19.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z" />
     </svg>
   ),
+  sair: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
 };
 
 export function Sidebar({
   active,
   userName,
   userRole,
+  pendingCount = 0,
 }: {
-  active: "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config";
+  active: "home" | "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config" | "sair";
   userName: string;
   userRole: "Fisioterapeuta" | "Secretária";
+  pendingCount?: number;
 }) {
   const items: NavItem[] = [
+    { label: "Home", href: "/home", icon: icons.home },
     { label: "Agenda", href: "/agenda", icon: icons.agenda },
     { label: "Pacientes", href: "/pacientes", icon: icons.pacientes },
   ];
@@ -61,7 +79,12 @@ export function Sidebar({
     items.push({ label: "Equipe", href: "/equipe", icon: icons.equipe });
   }
 
-  items.push({ label: "Solicitações", href: "/solicitacoes", icon: icons.solicitacoes, badge: 1 });
+  items.push({
+    label: "Solicitações",
+    href: "/solicitacoes",
+    icon: icons.solicitacoes,
+    badge: pendingCount > 0 ? pendingCount : undefined,
+  });
   items.push({ label: "Configurações", href: "/configuracoes", icon: icons.config });
 
   const initials = userName
@@ -69,6 +92,21 @@ export function Sidebar({
     .map((p) => p[0])
     .slice(0, 2)
     .join("");
+
+  // Mapeamento do active para a rota correspondente
+  const getActiveHref = () => {
+    switch (active) {
+      case "home": return "/home";
+      case "agenda": return "/agenda";
+      case "pacientes": return "/pacientes";
+      case "equipe": return "/equipe";
+      case "solicitacoes": return "/solicitacoes";
+      case "config": return "/configuracoes";
+      default: return "";
+    }
+  };
+
+  const activeHref = getActiveHref();
 
   return (
     <aside className="w-[224px] shrink-0 border-r border-[var(--color-line)] bg-[var(--color-card)] flex flex-col">
@@ -78,15 +116,17 @@ export function Sidebar({
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {items.map((item) => {
-          const isActive = item.label.toLowerCase().startsWith(active);
+          const isActive = item.href === activeHref;
           return (
             <Link
               key={item.label}
               href={item.href}
               className={`flex items-center justify-between gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] transition-colors ${
-                isActive
-                  ? "bg-[var(--color-pine-50)] text-[var(--color-pine-700)] font-medium"
-                  : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"
+                item.label === "Sair"
+                  ? "text-red-600 hover:bg-red-50 hover:text-red-700"
+                  : isActive
+                    ? "bg-[var(--color-pine-50)] text-[var(--color-pine-700)] font-medium"
+                    : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -102,6 +142,14 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      <Link
+        href="/login"
+        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 bg-red-50/60 hover:bg-red-50 transition-colors"
+      >
+        {icons.sair}
+        Sair
+      </Link>
 
       <div className="px-4 py-4 border-t border-[var(--color-line)] flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[12px] font-medium">

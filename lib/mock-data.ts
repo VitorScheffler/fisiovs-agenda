@@ -48,17 +48,7 @@ export const appointments: Appointment[] = [
 
   { id: "8", day: 3, time: "08:00", durationSlots: 1, patient: "Carlos Oliveira", category: "avaliacao", note: "Respiratória" },
   { id: "9", day: 3, time: "11:00", durationSlots: 1, patient: "Beatriz Souza", category: "retorno", note: "Dores na coluna" },
-  {
-    id: "10",
-    day: 3,
-    time: "09:00",
-    durationSlots: 1,
-    patient: "Solicitação de Camila (secretária)",
-    category: "tratamento",
-    note: "Remarcar para sexta às 14h",
-    status: "pendente",
-  },
+
 
   { id: "11", day: 4, time: "14:00", durationSlots: 1, patient: "Juliana Alves", category: "pilates", note: "Terapêutico" },
-  { id: "12", day: 4, time: "16:00", durationSlots: 2, patient: "Bloqueio", category: "bloqueado", note: "Reunião de equipe" },
 ];
