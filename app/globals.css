@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand - paleta FisioVS (turquesa + dourado) */
+  --color-pine-50: #e0f7f7;
+  --color-pine-100: #c2edee;
+  --color-pine-200: #8fdadc;
+  --color-pine-400: #4cb9bd;
+  --color-pine-600: #1fa4a9;
+  --color-pine-700: #0f7f83;
+  --color-pine-900: #0b5f63;
+
+  --color-terracotta-100: #faf1e0;
+  --color-terracotta-400: #e3c07e;
+  --color-terracotta-600: #d4a85a;
+
+  /* Neutrals */
+  --color-paper: #f5fafa;
+  --color-card: #ffffff;
+  --color-ink: #333333;
+  --color-ink-soft: #707f7f;
+  --color-line: #dcebeb;
+
+  /* Appointment categories */
+  --color-cat-avaliacao-bg: #e1f0e8;
+  --color-cat-avaliacao-fg: #3c7a5e;
+  --color-cat-retorno-bg: #e1eef5;
+  --color-cat-retorno-fg: #3a6f8c;
+  --color-cat-tratamento-bg: #faf1e0;
+  --color-cat-tratamento-fg: #9c7a35;
+  --color-cat-pilates-bg: #ece1ec;
+  --color-cat-pilates-fg: #6b4e73;
+  --color-cat-bloqueado-bg: #e9eeee;
+  --color-cat-bloqueado-fg: #707f7f;
+
+  /* Ação rápida (estilo WhatsApp) */
+  --color-whatsapp: #25d366;
+
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-display: "Fraunces", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
