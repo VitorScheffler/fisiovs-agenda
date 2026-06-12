@@ -1,23 +1,43 @@
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-        <circle cx="15" cy="15" r="15" fill="var(--color-pine-600)" />
-        <path
-          d="M9 20.5C9 20.5 10.5 13 15 13C19.5 13 21 20.5 21 20.5"
-          stroke="var(--color-paper)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <circle cx="15" cy="9.5" r="2.2" fill="var(--color-terracotta-400)" />
+    <div className={`flex items-center gap-3 ${className}`}>
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 1000 1000" 
+        width="40" 
+        height="40" 
+        className="flex-shrink-0"
+      >
+        <rect width="1000" height="1000" fill="#1a1b26" rx="20" />
+        
+        {/* Grupo principal convertido para camelCase */}
+        <g fill="none" stroke="#7bf5e8" strokeWidth="12" strokeLinecap="butt" strokeLinejoin="round">
+            <path d="M 235 140 L 412 643" />
+            <path d="M 530 140 L 458 385" />
+            <path d="M 565 270 C 480 270, 420 320, 420 390 C 420 460, 500 500, 580 540 C 680 590, 740 640, 740 700 C 740 770, 680 840, 580 840 C 510 840, 430 790, 400 660" />
+            <path d="M 235 140 L 280 140" strokeWidth="8" />
+            <path d="M 530 140 L 560 140" strokeWidth="8" />
+            <path d="M 630 280 C 670 300, 710 340, 715 400" strokeWidth="14" />
+        </g>
+        
+        {/* Máscara para o entrelaçamento */}
+        <path d="M 458 385 L 470 450" fill="none" stroke="#1a1b26" strokeWidth="16" />
+        <path d="M 412 643 L 430 630" fill="none" stroke="#1a1b26" strokeWidth="16" />
+        
+        {/* Redesenho do V */}
+        <g fill="none" stroke="#7bf5e8" strokeWidth="12" strokeLinecap="butt" strokeLinejoin="round">
+            <path d="M 235 140 L 412 643" />
+            <path d="M 530 140 L 458 385" />
+            <path d="M 235 140 L 280 140" strokeWidth="8" />
+            <path d="M 530 140 L 560 140" strokeWidth="8" />
+        </g>
+        
+        <path d="M 420 530 L 440 580" fill="none" stroke="#7bf5e8" strokeWidth="8" />
       </svg>
+
       <div className="leading-tight">
         <p className="font-display text-[17px] font-medium text-[var(--color-pine-700)]">
           FisioVS
-        </p>
-        <p className="text-[11px] text-[var(--color-ink-soft)] -mt-0.5">
-          Clínica de Fisioterapia
         </p>
       </div>
     </div>

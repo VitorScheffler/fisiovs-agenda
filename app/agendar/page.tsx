@@ -7,6 +7,7 @@ export default function AgendarPage() {
   return (
     <div className="min-h-screen bg-[var(--color-paper)] flex justify-center px-4 py-6">
       <div className="w-full max-w-[420px]">
+        <Logo className="[&_p]:text-white [&_p:last-child]:text-[var(--color-pine-700)]" />
         <div className="flex items-center gap-3 mb-6">
           <button
             aria-label="Voltar"
@@ -20,7 +21,7 @@ export default function AgendarPage() {
             <p className="font-display text-[18px] font-medium text-[var(--color-pine-700)]">
               Agendar horário
             </p>
-            <p className="text-[12px] text-[var(--color-ink-soft)]">Dra. Vi Schmitz</p>
+            <p className="text-[12px] text-[var(--color-ink-soft)]">Vitoria Raiane Scheffler</p>
           </div>
         </div>
 
@@ -100,10 +101,6 @@ export default function AgendarPage() {
             <circle cx="12" cy="8" r="3.5" />
             <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
           </NavIcon>
-        </div>
-
-        <div className="mt-6 flex items-center justify-center">
-          <Logo />
         </div>
       </div>
     </div>

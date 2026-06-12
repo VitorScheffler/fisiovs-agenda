@@ -28,10 +28,10 @@ export default function LoginPage() {
 
           <div>
             <h2 className="font-display text-[34px] leading-tight font-medium max-w-sm">
-              Sua agenda de atendimentos, organizada do início ao fim.
+              Cuidando do seu corpo com excelência
             </h2>
             <p className="text-[14px] text-[var(--color-pine-100)] mt-4 max-w-sm">
-              Acompanhe horários, pacientes e solicitações da equipe em um só lugar.
+              Atendimento fisioterapêutico humanizado, focado na sua recuperação, funcionalidade e qualidade de vida.
             </p>
           </div>
 
@@ -96,7 +96,7 @@ export default function LoginPage() {
           <p className="text-center text-[13px] text-[var(--color-ink-soft)] mt-6">
             Ainda não tem conta?{" "}
             <a href="#" className="text-[var(--color-pine-600)] font-medium hover:underline">
-              Fale com a recepção
+              Criar conta
             </a>
           </p>
         </div>
