@@ -1,14 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { Appointment, AppointmentStatus } from "@/lib/types";
-import { appointments as initialAppointments } from "@/lib/mock-data";
-import { findUser } from "@/lib/users";
-import { PATIENTS } from "@/lib/patients";
-
-type Patient = (typeof PATIENTS)[number];
-
-type User = NonNullable<ReturnType<typeof findUser>>;
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { Appointment, AppointmentStatus, Patient, User } from "@/lib/types";
 
 type ModalState =
   | { type: "appointment"; appointment: Appointment }
@@ -17,35 +10,134 @@ type ModalState =
 
 interface AppContextValue {
   currentUser: User | null;
-  login: (email: string, password: string) => User | null;
-  logout: () => void;
+  authLoading: boolean;
+  login: (email: string, password: string) => Promise<{ user: User } | { error: string }>;
+  logout: () => Promise<void>;
+
   appointments: Appointment[];
+  appointmentsLoading: boolean;
+  refreshAppointments: () => Promise<void>;
+
   modal: ModalState;
   openAppointment: (a: Appointment) => void;
   openNewSlot: (day: number, time: string) => void;
   closeModal: () => void;
-  approveAppointment: (id: string) => void;
-  rejectAppointment: (id: string) => void;
-  addAppointment: (a: Appointment) => void;
+
+  approveAppointment: (id: string) => Promise<void>;
+  rejectAppointment: (id: string) => Promise<void>;
+  addAppointment: (a: Omit<Appointment, "id">) => Promise<void>;
+
   patients: Patient[];
-  updatePatient: (id: string, data: Partial<Patient>) => void;
+  patientsLoading: boolean;
+  refreshPatients: () => Promise<void>;
+  updatePatient: (id: string, data: Partial<Patient>) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers ?? {}),
+    },
+    credentials: "include",
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message = data?.error ?? `Erro na requisição (${res.status})`;
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
-  const [modal, setModal] = useState<ModalState>(null);
-  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const login = useCallback((email: string, password: string): User | null => {
-    const user = findUser(email, password);
-    if (user) setCurrentUser(user);
-    return user;
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+
+  const [modal, setModal] = useState<ModalState>(null);
+
+  // Carrega sessão atual ao montar
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await apiFetch<{ user: User }>("/api/auth/me");
+        if (active) setCurrentUser(data.user);
+      } catch {
+        if (active) setCurrentUser(null);
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const logout = useCallback(() => setCurrentUser(null), []);
+  const refreshAppointments = useCallback(async () => {
+    setAppointmentsLoading(true);
+    try {
+      const data = await apiFetch<{ appointments: Appointment[] }>("/api/appointments");
+      setAppointments(data.appointments);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  }, []);
+
+  const refreshPatients = useCallback(async () => {
+    setPatientsLoading(true);
+    try {
+      const data = await apiFetch<{ patients: Patient[] }>("/api/patients");
+      setPatients(data.patients);
+    } finally {
+      setPatientsLoading(false);
+    }
+  }, []);
+
+  // Carrega dados sempre que o usuário muda (login/logout)
+  useEffect(() => {
+    if (!currentUser) {
+      setAppointments([]);
+      setPatients([]);
+      return;
+    }
+    refreshAppointments().catch(() => {});
+    if (currentUser.role !== "paciente") {
+      refreshPatients().catch(() => {});
+    }
+  }, [currentUser, refreshAppointments, refreshPatients]);
+
+  const login = useCallback(
+    async (email: string, password: string): Promise<{ user: User } | { error: string }> => {
+      try {
+        const data = await apiFetch<{ user: User }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        });
+        setCurrentUser(data.user);
+        return { user: data.user };
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : "Erro ao entrar." };
+      }
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    await apiFetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    setCurrentUser(null);
+  }, []);
 
   const openAppointment = useCallback((a: Appointment) => {
     setModal({ type: "appointment", appointment: a });
@@ -57,38 +149,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const closeModal = useCallback(() => setModal(null), []);
 
-  const approveAppointment = useCallback((id: string) => {
+  const approveAppointment = useCallback(async (id: string) => {
+    const data = await apiFetch<{ appointment: Appointment }>(
+      `/api/appointments/${id}/approve`,
+      { method: "POST" }
+    );
     setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, status: "confirmado" as AppointmentStatus } : a
-      )
+      prev.map((a) => (a.id === id ? { ...a, status: "confirmado" as AppointmentStatus } : a))
     );
     setModal(null);
+    return data;
   }, []);
 
-  const rejectAppointment = useCallback((id: string) => {
+  const rejectAppointment = useCallback(async (id: string) => {
+    await apiFetch(`/api/appointments/${id}/reject`, { method: "POST" });
     setAppointments((prev) => prev.filter((a) => a.id !== id));
     setModal(null);
   }, []);
 
-  const addAppointment = useCallback((a: Appointment) => {
-    setAppointments((prev) => [...prev, a]);
+  const addAppointment = useCallback(async (a: Omit<Appointment, "id">) => {
+    const data = await apiFetch<{ appointment: Appointment }>("/api/appointments", {
+      method: "POST",
+      body: JSON.stringify(a),
+    });
+    setAppointments((prev) => [...prev, data.appointment]);
   }, []);
 
-  const updatePatient = useCallback((id: string, data: Partial<Patient>) => {
-    setPatients((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
-    );
+  const updatePatient = useCallback(async (id: string, data: Partial<Patient>) => {
+    const result = await apiFetch<{ patient: Patient }>(`/api/patients/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    setPatients((prev) => prev.map((p) => (p.id === id ? result.patient : p)));
   }, []);
 
   return (
     <AppContext.Provider
       value={{
-        currentUser, login, logout,
-        appointments, modal,
-        openAppointment, openNewSlot, closeModal,
-        approveAppointment, rejectAppointment, addAppointment,
-        patients, updatePatient,
+        currentUser,
+        authLoading,
+        login,
+        logout,
+        appointments,
+        appointmentsLoading,
+        refreshAppointments,
+        modal,
+        openAppointment,
+        openNewSlot,
+        closeModal,
+        approveAppointment,
+        rejectAppointment,
+        addAppointment,
+        patients,
+        patientsLoading,
+        refreshPatients,
+        updatePatient,
       }}
     >
       {children}

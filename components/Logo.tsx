@@ -10,7 +10,6 @@ export function Logo({ className = "" }: { className?: string }) {
       >
         <rect width="1000" height="1000" fill="#1a1b26" rx="20" />
         
-        {/* Grupo principal convertido para camelCase */}
         <g fill="none" stroke="#7bf5e8" strokeWidth="12" strokeLinecap="butt" strokeLinejoin="round">
             <path d="M 235 140 L 412 643" />
             <path d="M 530 140 L 458 385" />
@@ -20,11 +19,9 @@ export function Logo({ className = "" }: { className?: string }) {
             <path d="M 630 280 C 670 300, 710 340, 715 400" strokeWidth="14" />
         </g>
         
-        {/* Máscara para o entrelaçamento */}
         <path d="M 458 385 L 470 450" fill="none" stroke="#1a1b26" strokeWidth="16" />
         <path d="M 412 643 L 430 630" fill="none" stroke="#1a1b26" strokeWidth="16" />
         
-        {/* Redesenho do V */}
         <g fill="none" stroke="#7bf5e8" strokeWidth="12" strokeLinecap="butt" strokeLinejoin="round">
             <path d="M 235 140 L 412 643" />
             <path d="M 530 140 L 458 385" />

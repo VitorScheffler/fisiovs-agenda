@@ -1,7 +1,17 @@
-import { Appointment } from "./types";
+// Constantes de UI da agenda semanal. Os dados reais de agendamentos,
+// pacientes e equipe agora vêm das APIs (/api/appointments, /api/patients,
+// /api/team) consumidas via AppContext.
+//
+// As datas da semana e do mini-calendário são calculadas a partir da data
+// real do dispositivo/servidor (ver lib/date-utils.ts), então a agenda
+// sempre reflete a semana e o mês corrente de verdade.
+
+import { getCurrentWeekDates, getCurrentMonthCalendarDays } from "./date-utils";
 
 export const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-export const weekDates = ["09/06", "10/06", "11/06", "12/06", "13/06", "14/06"];
+
+/** Datas (dd/mm) de Segunda a Sábado da semana corrente */
+export const weekDates: string[] = getCurrentWeekDates();
 
 export const hours = [
   "08:00",
@@ -16,15 +26,8 @@ export const hours = [
   "17:00",
 ];
 
-export const calendarDays = [
-  { label: "SEG", date: 8 },
-  { label: "TER", date: 9 },
-  { label: "QUA", date: 10 },
-  { label: "QUI", date: 11 },
-  { label: "SEX", date: 12 },
-  { label: "SÁB", date: 13 },
-  { label: "DOM", date: 14 },
-];
+/** Dias do mês corrente, com label do dia da semana (SEG..DOM) */
+export const calendarDays: { label: string; date: number }[] = getCurrentMonthCalendarDays();
 
 export const availableSlots: { time: string; available: boolean }[] = [
   { time: "08:00", available: true },
@@ -34,21 +37,4 @@ export const availableSlots: { time: string; available: boolean }[] = [
   { time: "14:00", available: false },
   { time: "15:00", available: true },
   { time: "16:00", available: false },
-];
-
-export const appointments: Appointment[] = [
-  { id: "1", day: 0, time: "08:00", durationSlots: 1, patient: "João Silva", category: "avaliacao" },
-  { id: "2", day: 0, time: "10:00", durationSlots: 1, patient: "Ana Paula", category: "tratamento", note: "Pós-operatória" },
-  { id: "3", day: 0, time: "14:00", durationSlots: 1, patient: "Fernanda Costa", category: "tratamento", note: "Neurológica" },
-  { id: "4", day: 0, time: "17:00", durationSlots: 1, patient: "Gabriel Ribeiro", category: "retorno", note: "Alongamento" },
-
-  { id: "5", day: 2, time: "09:00", durationSlots: 1, patient: "Mariana Lima", category: "retorno", note: "Ortopédica" },
-  { id: "6", day: 2, time: "11:00", durationSlots: 1, patient: "Lucas Ferreira", category: "pilates", note: "Reabilitação funcional" },
-  { id: "7", day: 2, time: "15:00", durationSlots: 1, patient: "Ricardo Mendes", category: "tratamento", note: "Desportiva" },
-
-  { id: "8", day: 3, time: "08:00", durationSlots: 1, patient: "Carlos Oliveira", category: "avaliacao", note: "Respiratória" },
-  { id: "9", day: 3, time: "11:00", durationSlots: 1, patient: "Beatriz Souza", category: "retorno", note: "Dores na coluna" },
-
-
-  { id: "11", day: 4, time: "14:00", durationSlots: 1, patient: "Juliana Alves", category: "pilates", note: "Terapêutico" },
 ];

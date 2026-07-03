@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "./Logo";
+import { useApp } from "@/context/AppContext";
 
 type NavItem = {
   label: string;
@@ -66,9 +70,12 @@ export function Sidebar({
 }: {
   active: "home" | "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config" | "sair";
   userName: string;
-  userRole: "Fisioterapeuta" | "Secretária";
+  userRole: "Fisioterapeuta" | "Secretária" | string;
   pendingCount?: number;
 }) {
+  const router = useRouter();
+  const { logout } = useApp();
+
   const items: NavItem[] = [
     { label: "Home", href: "/home", icon: icons.home },
     { label: "Agenda", href: "/agenda", icon: icons.agenda },
@@ -93,7 +100,6 @@ export function Sidebar({
     .slice(0, 2)
     .join("");
 
-  // Mapeamento do active para a rota correspondente
   const getActiveHref = () => {
     switch (active) {
       case "home": return "/home";
@@ -107,6 +113,12 @@ export function Sidebar({
   };
 
   const activeHref = getActiveHref();
+
+  async function handleLogout(e: React.MouseEvent) {
+    e.preventDefault();
+    await logout();
+    router.push("/login");
+  }
 
   return (
     <aside className="w-[224px] shrink-0 border-r border-[var(--color-line)] bg-[var(--color-card)] flex flex-col">
@@ -122,11 +134,9 @@ export function Sidebar({
               key={item.label}
               href={item.href}
               className={`flex items-center justify-between gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] transition-colors ${
-                item.label === "Sair"
-                  ? "text-red-600 hover:bg-red-50 hover:text-red-700"
-                  : isActive
-                    ? "bg-[var(--color-pine-50)] text-[var(--color-pine-700)] font-medium"
-                    : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"
+                isActive
+                  ? "bg-[var(--color-pine-50)] text-[var(--color-pine-700)] font-medium"
+                  : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -143,13 +153,14 @@ export function Sidebar({
         })}
       </nav>
 
-      <Link
+      <a
         href="/login"
-        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 bg-red-50/60 hover:bg-red-50 transition-colors"
+        onClick={handleLogout}
+        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 bg-red-50/60 hover:bg-red-50 transition-colors cursor-pointer"
       >
         {icons.sair}
         Sair
-      </Link>
+      </a>
 
       <div className="px-4 py-4 border-t border-[var(--color-line)] flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[12px] font-medium">

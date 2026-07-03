@@ -1,8 +1,42 @@
+"use client";
+
+import { useState } from "react";
 import { Logo } from "@/components/Logo";
+import { useApp } from "@/context/AppContext";
 import { availableSlots, calendarDays } from "@/lib/mock-data";
+import { getCurrentMonthLabel, getTodayDateOfMonth, getTodayFullLabel, getTodayIndex } from "@/lib/date-utils";
 
 export default function AgendarPage() {
-  const selectedDate = 10; // Quarta-feira, 10 de junho
+  const { currentUser, addAppointment } = useApp();
+  const selectedDate = getTodayDateOfMonth();
+  // Domingo (sem índice na grade Seg-Sáb) cai no primeiro horário (Segunda)
+  const dayIndex = getTodayIndex() ?? 0;
+
+  const [submittingTime, setSubmittingTime] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  async function handleAgendar(time: string) {
+    if (!currentUser) return;
+    setSubmittingTime(time);
+    setMessage("");
+    try {
+      await addAppointment({
+        day: dayIndex,
+        time,
+        durationSlots: 1,
+        patientId: currentUser.patientId ?? undefined,
+        patient: currentUser.name,
+        category: "avaliacao",
+        note: "Solicitado pelo paciente",
+        status: "pendente",
+      });
+      setMessage("Solicitação enviada! Aguarde a confirmação da clínica.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Erro ao solicitar agendamento.");
+    } finally {
+      setSubmittingTime(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)] flex justify-center px-4 py-6">
@@ -21,14 +55,14 @@ export default function AgendarPage() {
             <p className="font-display text-[18px] font-medium text-[var(--color-pine-700)]">
               Agendar horário
             </p>
-            <p className="text-[12px] text-[var(--color-ink-soft)]">Vitoria Raiane Scheffler</p>
+            <p className="text-[12px] text-[var(--color-ink-soft)]">{currentUser?.name ?? ""}</p>
           </div>
         </div>
 
         <div className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] p-4 mb-5">
           <div className="flex items-center justify-between mb-4">
             <button aria-label="Mês anterior" className="text-[15px] text-[var(--color-ink-soft)]">‹</button>
-            <p className="text-[13px] font-medium">Junho 2026</p>
+            <p className="text-[13px] font-medium">{getCurrentMonthLabel()}</p>
             <button aria-label="Próximo mês" className="text-[15px] text-[var(--color-ink-soft)]">›</button>
           </div>
 
@@ -55,8 +89,14 @@ export default function AgendarPage() {
             <rect x="3" y="4" width="18" height="17" rx="2" />
             <path d="M3 9h18M8 2v4M16 2v4" />
           </svg>
-          <p className="text-[13px] font-medium">Quarta-feira, 10 de junho</p>
+          <p className="text-[13px] font-medium">{getTodayFullLabel()}</p>
         </div>
+
+        {message && (
+          <p className="text-[12px] text-[var(--color-pine-700)] bg-[var(--color-pine-50)] rounded-[10px] px-3 py-2 mb-3">
+            {message}
+          </p>
+        )}
 
         <div className="flex flex-col gap-2">
           {availableSlots.map((slot) => (
@@ -75,20 +115,20 @@ export default function AgendarPage() {
                 </p>
               </div>
               <button
-                disabled={!slot.available}
+                disabled={!slot.available || submittingTime !== null}
+                onClick={() => handleAgendar(slot.time)}
                 className={`text-[13px] font-medium rounded-[8px] px-4 py-2 transition-colors ${
                   slot.available
                     ? "bg-[var(--color-pine-600)] text-white hover:bg-[var(--color-pine-700)]"
                     : "bg-[var(--color-line)] text-[var(--color-ink-soft)] cursor-not-allowed"
-                }`}
+                } disabled:opacity-60`}
               >
-                Agendar
+                {submittingTime === slot.time ? "Enviando…" : "Agendar"}
               </button>
             </div>
           ))}
         </div>
 
-        {/* Navegação inferior, estilo app */}
         <div className="mt-8 rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] flex items-center justify-around py-3">
           <NavIcon label="Início">
             <path d="M3 11l9-8 9 8M5 10v10h14V10" />

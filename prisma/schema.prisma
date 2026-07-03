@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  fisioterapeuta
+  secretaria
+  paciente
+}
+
+enum AppointmentCategory {
+  avaliacao
+  retorno
+  tratamento
+  pilates
+  bloqueado
+}
+
+enum AppointmentStatus {
+  confirmado
+  pendente
+}
+
+enum PatientStatus {
+  ativo
+  inativo
+  alta
+}
+
+enum TeamRole {
+  Fisioterapeuta
+  Secretaria
+  Auxiliar
+  TI
+}
+
+enum TeamStatus {
+  ativo
+  inativo
+  ferias
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String // hash bcrypt
+  role      UserRole
+  specialty String?
+  crefito   String?
+  avatar    String?
+
+  // Quando role = paciente, vincula ao registro de paciente
+  patientId String?  @unique
+  patient   Patient? @relation(fields: [patientId], references: [id])
+
+  // Quando role = fisio/secretaria/admin/TI, vincula ao registro de equipe
+  teamMember TeamMember?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Patient {
+  id        String        @id @default(cuid())
+  name      String
+  email     String        @unique
+  phone     String
+  birthDate DateTime
+  cpf       String        @unique
+  address   String?
+  status    PatientStatus @default(ativo)
+  condition String?
+  since     String
+  notes     String?
+
+  user                User?
+  appointments        Appointment[]
+  appointmentHistory  AppointmentHistoryEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AppointmentHistoryEntry {
+  id        String              @id @default(cuid())
+  patientId String
+  patient   Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date      String // dd/MM/yyyy
+  category  AppointmentCategory
+  note      String?
+  status    AppointmentStatus   @default(confirmado)
+}
+
+model TeamMember {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  user      User?      @relation(fields: [userId], references: [id])
+  name      String
+  role      TeamRole
+  specialty String?
+  crefito   String?
+  email     String     @unique
+  phone     String
+  status    TeamStatus @default(ativo)
+  since     String
+  initials  String
+  color     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Appointment {
+  id            String              @id @default(cuid())
+  day           Int // 0 = Segunda ... 5 = Sábado
+  time          String // "08:00"
+  durationSlots Int                 @default(1)
+  patientId     String?
+  patient       Patient?            @relation(fields: [patientId], references: [id])
+  patientName   String // snapshot, permite agendamentos sem paciente cadastrado
+  category      AppointmentCategory
+  note          String?
+  status        AppointmentStatus   @default(confirmado)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
