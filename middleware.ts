@@ -12,7 +12,7 @@ const PROTECTED_PREFIXES = [
 
 const PATIENT_ONLY_PREFIXES = ["/agendar"];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
