@@ -14,9 +14,13 @@ const registerSchema = z.object({
   inviteCode: z.string().optional(),
 });
 
-// Código de convite simples para controlar quem pode se cadastrar como staff
-// Em produção, substituir por sistema de convites por e-mail
-const STAFF_INVITE_CODE = process.env.STAFF_INVITE_CODE ?? "FisioVS2026";
+// Código de convite simples para controlar quem pode se cadastrar como staff.
+// Não há valor padrão: precisa ser definido via variável de ambiente, ou
+// qualquer pessoa poderia se cadastrar como admin/fisioterapeuta.
+// Em produção, substituir por um sistema de convites por e-mail.
+function getStaffInviteCode(): string | null {
+  return process.env.STAFF_INVITE_CODE ?? null;
+}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -34,7 +38,14 @@ export async function POST(request: Request) {
   const { name, email, password, role, specialty, crefito, inviteCode } = parsed.data;
 
   // Valida código de convite para cadastro de staff
-  if (inviteCode !== STAFF_INVITE_CODE) {
+  const staffInviteCode = getStaffInviteCode();
+  if (!staffInviteCode) {
+    return jsonError(
+      "Cadastro de equipe está desabilitado: defina STAFF_INVITE_CODE nas variáveis de ambiente.",
+      500
+    );
+  }
+  if (inviteCode !== staffInviteCode) {
     return jsonError("Código de convite inválido.", 403);
   }
 

@@ -87,9 +87,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
- 
-    const openAtendimento = useCallback((a: Appointment) => {
-    setModal({ type: "atendimento", appointment: a });
   }, []);
 
   const refreshAppointments = useCallback(async () => {
@@ -115,6 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Carrega dados sempre que o usuário muda (login/logout)
   useEffect(() => {
     if (!currentUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset intencional ao deslogar
       setAppointments([]);
       setPatients([]);
       return;
@@ -154,6 +152,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setModal({ type: "new", day, time });
   }, []);
 
+  const openAtendimento = useCallback((a: Appointment) => {
+    setModal({ type: "atendimento", appointment: a });
+  }, []);
+
   const closeModal = useCallback(() => setModal(null), []);
 
   const approveAppointment = useCallback(async (id: string) => {
@@ -190,6 +192,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPatients((prev) => prev.map((p) => (p.id === id ? result.patient : p)));
   }, []);
 
+  const saveAtendimento = useCallback(async (appointmentId: string, formData: FormData) => {
+    const res = await fetch(`/api/appointments/${appointmentId}/atendimento`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(data?.error ?? `Erro ao salvar atendimento (${res.status})`);
+    }
+    await refreshPatients();
+    setModal(null);
+  }, [refreshPatients]);
+
   return (
     <AppContext.Provider
       value={{
@@ -211,6 +227,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         patientsLoading,
         refreshPatients,
         updatePatient,
+        openAtendimento,
+        saveAtendimento,
       }}
     >
       {children}

@@ -25,6 +25,7 @@ enum AppointmentCategory {
 enum AppointmentStatus {
   confirmado
   pendente
+  rejeitado
 }
 
 enum PatientStatus {
@@ -86,16 +87,6 @@ model Patient {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model AppointmentHistoryEntry {
-  id        String              @id @default(cuid())
-  patientId String
-  patient   Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  date      String // dd/MM/yyyy
-  category  AppointmentCategory
-  note      String?
-  status    AppointmentStatus   @default(confirmado)
 }
 
 model TeamMember {

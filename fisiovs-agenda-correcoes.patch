@@ -1,16 +1,15 @@
-diff --git a/.gitignore b/.gitignore
-index 352a50d..d0f49bf 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -22,3 +22,4 @@ yarn-error.log*
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/.gitignore fisiovs-agenda-main/.gitignore
+--- fisiovs-agenda-clean/.gitignore	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/.gitignore	2026-07-04 01:12:33.930235947 +0000
+@@ -22,3 +22,5 @@
  next-env.d.ts
  /prisma/dev.db
  /prisma/dev.db-journal
 +*.zip
-diff --git a/app/api/appointments/[id]/reject/route.ts b/app/api/appointments/[id]/reject/route.ts
-index 6913372..ea043e1 100644
---- a/app/api/appointments/[id]/reject/route.ts
-+++ b/app/api/appointments/[id]/reject/route.ts
++/public/uploads/
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/app/api/appointments/[id]/reject/route.ts fisiovs-agenda-main/app/api/appointments/[id]/reject/route.ts
+--- fisiovs-agenda-clean/app/api/appointments/[id]/reject/route.ts	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/app/api/appointments/[id]/reject/route.ts	2026-07-04 01:11:40.175347046 +0000
 @@ -1,5 +1,6 @@
  import { prisma } from "@/lib/prisma";
  import { requireRole, jsonError, jsonOk, STAFF_ROLES } from "@/lib/api-utils";
@@ -18,7 +17,7 @@ index 6913372..ea043e1 100644
  
  type Params = { params: Promise<{ id: string }> };
  
-@@ -14,7 +15,11 @@ export async function POST(_request: Request, { params }: Params) {
+@@ -14,7 +15,11 @@
      return jsonError("Agendamento não encontrado.", 404);
    }
  
@@ -32,11 +31,10 @@ index 6913372..ea043e1 100644
 -  return jsonOk({ success: true });
 +  return jsonOk({ appointment: serializeAppointment(appointment) });
  }
-diff --git a/app/api/appointments/route.ts b/app/api/appointments/route.ts
-index 288a6b1..7675cb5 100644
---- a/app/api/appointments/route.ts
-+++ b/app/api/appointments/route.ts
-@@ -19,14 +19,17 @@ export async function GET() {
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/app/api/appointments/route.ts fisiovs-agenda-main/app/api/appointments/route.ts
+--- fisiovs-agenda-clean/app/api/appointments/route.ts	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/app/api/appointments/route.ts	2026-07-04 01:11:50.421679613 +0000
+@@ -19,14 +19,17 @@
    if ("error" in auth) return auth.error;
  
    // Pacientes só veem os próprios agendamentos; equipe vê tudo.
@@ -55,7 +53,7 @@ index 288a6b1..7675cb5 100644
  
    const appointments = await prisma.appointment.findMany({
      where,
-@@ -77,7 +80,7 @@ export async function POST(request: Request) {
+@@ -77,7 +80,7 @@
  
    // Verifica conflito de horário (mesmo dia, mesma hora, sobreposição de duração)
    const sameDayAppointments = await prisma.appointment.findMany({
@@ -64,11 +62,10 @@ index 288a6b1..7675cb5 100644
    });
  
    const hours = [
-diff --git a/app/api/auth/register/route.ts b/app/api/auth/register/route.ts
-index 348ed2d..f924889 100644
---- a/app/api/auth/register/route.ts
-+++ b/app/api/auth/register/route.ts
-@@ -14,9 +14,17 @@ const registerSchema = z.object({
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/app/api/auth/register/route.ts fisiovs-agenda-main/app/api/auth/register/route.ts
+--- fisiovs-agenda-clean/app/api/auth/register/route.ts	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/app/api/auth/register/route.ts	2026-07-04 01:12:09.267495986 +0000
+@@ -14,9 +14,13 @@
    inviteCode: z.string().optional(),
  });
  
@@ -76,33 +73,122 @@ index 348ed2d..f924889 100644
 -// Em produção, substituir por sistema de convites por e-mail
 -const STAFF_INVITE_CODE = process.env.STAFF_INVITE_CODE ?? "FisioVS2026";
 +// Código de convite simples para controlar quem pode se cadastrar como staff.
-+// Não há valor padrão: deve ser definido via variável de ambiente, ou
++// Não há valor padrão: precisa ser definido via variável de ambiente, ou
 +// qualquer pessoa poderia se cadastrar como admin/fisioterapeuta.
 +// Em produção, substituir por um sistema de convites por e-mail.
-+function getStaffInviteCode() {
-+  const code = process.env.STAFF_INVITE_CODE;
-+  if (!code) {
-+    throw new Error("STAFF_INVITE_CODE não configurado. Defina a variável de ambiente.");
-+  }
-+  return code;
++function getStaffInviteCode(): string | null {
++  return process.env.STAFF_INVITE_CODE ?? null;
 +}
  
  export async function POST(request: Request) {
    let body: unknown;
-@@ -34,7 +42,7 @@ export async function POST(request: Request) {
+@@ -34,7 +38,14 @@
    const { name, email, password, role, specialty, crefito, inviteCode } = parsed.data;
  
    // Valida código de convite para cadastro de staff
 -  if (inviteCode !== STAFF_INVITE_CODE) {
-+  if (inviteCode !== getStaffInviteCode()) {
++  const staffInviteCode = getStaffInviteCode();
++  if (!staffInviteCode) {
++    return jsonError(
++      "Cadastro de equipe está desabilitado: defina STAFF_INVITE_CODE nas variáveis de ambiente.",
++      500
++    );
++  }
++  if (inviteCode !== staffInviteCode) {
      return jsonError("Código de convite inválido.", 403);
    }
  
-diff --git a/lib/types.ts b/lib/types.ts
-index 00cdc77..44a900b 100644
---- a/lib/types.ts
-+++ b/lib/types.ts
-@@ -5,7 +5,7 @@ export type AppointmentCategory =
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/app/pacientes/page.tsx fisiovs-agenda-main/app/pacientes/page.tsx
+--- fisiovs-agenda-clean/app/pacientes/page.tsx	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/app/pacientes/page.tsx	2026-07-04 01:10:24.684723134 +0000
+@@ -3,9 +3,9 @@
+ import { useState } from "react";
+ import { Sidebar } from "@/components/Sidebar";
+ import { useApp } from "@/context/AppContext";
+-import { Patient, PatientStatus } from "@/lib/types";
++import { Patient, PatientStatus, categoryLabels } from "@/lib/types";
+ import { calcAge } from "@/lib/patients";
+-import { categoryLabels } from "@/lib/types";
++import { weekDays, weekDates, hours } from "@/lib/mock-data";
+ import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
+ 
+ const statusLabel: Record<PatientStatus, string> = { ativo: "Ativo", inativo: "Inativo", alta: "Alta" };
+@@ -169,8 +169,7 @@
+ // --- Modal: Agendar Consulta ---
+ function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClose: () => void; patient: Patient }) {
+   const { addAppointment } = useApp();
+-  const { weekDays, weekDates, hours } = require("@/lib/mock-data");
+-  const { categoryLabels: catLabels } = require("@/lib/types");
++  const catLabels = categoryLabels;
+   const [day, setDay] = useState("0");
+   const [time, setTime] = useState("08:00");
+   const [category, setCategory] = useState("avaliacao");
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/context/AppContext.tsx fisiovs-agenda-main/context/AppContext.tsx
+--- fisiovs-agenda-clean/context/AppContext.tsx	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/context/AppContext.tsx	2026-07-04 01:10:56.806628315 +0000
+@@ -87,9 +87,6 @@
+     return () => {
+       active = false;
+     };
+- 
+-    const openAtendimento = useCallback((a: Appointment) => {
+-    setModal({ type: "atendimento", appointment: a });
+   }, []);
+ 
+   const refreshAppointments = useCallback(async () => {
+@@ -115,6 +112,7 @@
+   // Carrega dados sempre que o usuário muda (login/logout)
+   useEffect(() => {
+     if (!currentUser) {
++      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset intencional ao deslogar
+       setAppointments([]);
+       setPatients([]);
+       return;
+@@ -154,6 +152,10 @@
+     setModal({ type: "new", day, time });
+   }, []);
+ 
++  const openAtendimento = useCallback((a: Appointment) => {
++    setModal({ type: "atendimento", appointment: a });
++  }, []);
++
+   const closeModal = useCallback(() => setModal(null), []);
+ 
+   const approveAppointment = useCallback(async (id: string) => {
+@@ -190,6 +192,20 @@
+     setPatients((prev) => prev.map((p) => (p.id === id ? result.patient : p)));
+   }, []);
+ 
++  const saveAtendimento = useCallback(async (appointmentId: string, formData: FormData) => {
++    const res = await fetch(`/api/appointments/${appointmentId}/atendimento`, {
++      method: "POST",
++      credentials: "include",
++      body: formData,
++    });
++    const data = await res.json().catch(() => null);
++    if (!res.ok) {
++      throw new Error(data?.error ?? `Erro ao salvar atendimento (${res.status})`);
++    }
++    await refreshPatients();
++    setModal(null);
++  }, [refreshPatients]);
++
+   return (
+     <AppContext.Provider
+       value={{
+@@ -211,6 +227,8 @@
+         patientsLoading,
+         refreshPatients,
+         updatePatient,
++        openAtendimento,
++        saveAtendimento,
+       }}
+     >
+       {children}
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/lib/types.ts fisiovs-agenda-main/lib/types.ts
+--- fisiovs-agenda-clean/lib/types.ts	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/lib/types.ts	2026-07-04 01:11:33.658654097 +0000
+@@ -5,7 +5,7 @@
    | "pilates"
    | "bloqueado";
  
@@ -111,27 +197,10 @@ index 00cdc77..44a900b 100644
  
  export type Appointment = {
    id: string;
-diff --git a/proxy.ts b/middleware.ts
-similarity index 96%
-rename from proxy.ts
-rename to middleware.ts
-index 5ef97ce..06fe984 100644
---- a/proxy.ts
-+++ b/middleware.ts
-@@ -12,7 +12,7 @@ const PROTECTED_PREFIXES = [
- 
- const PATIENT_ONLY_PREFIXES = ["/agendar"];
- 
--export async function proxy(request: NextRequest) {
-+export async function middleware(request: NextRequest) {
-   const { pathname } = request.nextUrl;
- 
-   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-diff --git a/prisma/schema.prisma b/prisma/schema.prisma
-index 1170576..7d4a76a 100644
---- a/prisma/schema.prisma
-+++ b/prisma/schema.prisma
-@@ -25,6 +25,7 @@ enum AppointmentCategory {
+diff -ruN '--exclude=node_modules' '--exclude=.git' '--exclude=*.db*' fisiovs-agenda-clean/prisma/schema.prisma fisiovs-agenda-main/prisma/schema.prisma
+--- fisiovs-agenda-clean/prisma/schema.prisma	2026-07-04 01:03:06.000000000 +0000
++++ fisiovs-agenda-main/prisma/schema.prisma	2026-07-04 01:11:30.787799279 +0000
+@@ -25,6 +25,7 @@
  enum AppointmentStatus {
    confirmado
    pendente
@@ -139,3 +208,20 @@ index 1170576..7d4a76a 100644
  }
  
  enum PatientStatus {
+@@ -88,16 +89,6 @@
+   updatedAt DateTime @updatedAt
+ }
+ 
+-model AppointmentHistoryEntry {
+-  id        String              @id @default(cuid())
+-  patientId String
+-  patient   Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+-  date      String // dd/MM/yyyy
+-  category  AppointmentCategory
+-  note      String?
+-  status    AppointmentStatus   @default(confirmado)
+-}
+-
+ model TeamMember {
+   id        String     @id @default(cuid())
+   userId    String?    @unique

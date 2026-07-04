@@ -5,7 +5,7 @@ export type AppointmentCategory =
   | "pilates"
   | "bloqueado";
 
-export type AppointmentStatus = "confirmado" | "pendente";
+export type AppointmentStatus = "confirmado" | "pendente" | "rejeitado";
 
 export type Appointment = {
   id: string;

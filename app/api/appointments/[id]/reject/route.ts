@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireRole, jsonError, jsonOk, STAFF_ROLES } from "@/lib/api-utils";
+import { serializeAppointment } from "@/lib/appointment-serializer";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,7 +15,11 @@ export async function POST(_request: Request, { params }: Params) {
     return jsonError("Agendamento não encontrado.", 404);
   }
 
-  await prisma.appointment.delete({ where: { id } });
+  // Marca como rejeitado em vez de apagar, preservando o histórico.
+  const appointment = await prisma.appointment.update({
+    where: { id },
+    data: { status: "rejeitado" },
+  });
 
-  return jsonOk({ success: true });
+  return jsonOk({ appointment: serializeAppointment(appointment) });
 }

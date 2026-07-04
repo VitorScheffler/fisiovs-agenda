@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
-import { Patient, PatientStatus } from "@/lib/types";
+import { Patient, PatientStatus, categoryLabels } from "@/lib/types";
 import { calcAge } from "@/lib/patients";
-import { categoryLabels } from "@/lib/types";
+import { weekDays, weekDates, hours } from "@/lib/mock-data";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
 
 const statusLabel: Record<PatientStatus, string> = { ativo: "Ativo", inativo: "Inativo", alta: "Alta" };
@@ -169,8 +169,7 @@ function EditarFichaModal({ open, onClose, patient }: { open: boolean; onClose: 
 // --- Modal: Agendar Consulta ---
 function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClose: () => void; patient: Patient }) {
   const { addAppointment } = useApp();
-  const { weekDays, weekDates, hours } = require("@/lib/mock-data");
-  const { categoryLabels: catLabels } = require("@/lib/types");
+  const catLabels = categoryLabels;
   const [day, setDay] = useState("0");
   const [time, setTime] = useState("08:00");
   const [category, setCategory] = useState("avaliacao");

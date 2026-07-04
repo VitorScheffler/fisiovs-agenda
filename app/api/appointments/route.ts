@@ -19,14 +19,17 @@ export async function GET() {
   if ("error" in auth) return auth.error;
 
   // Pacientes só veem os próprios agendamentos; equipe vê tudo.
+  // Agendamentos rejeitados ficam preservados no banco (histórico), mas não
+  // aparecem na agenda/lista padrão.
   const where =
     auth.session.role === "paciente"
       ? {
+          status: { not: "rejeitado" as const },
           patient: {
             user: { id: auth.session.userId },
           },
         }
-      : {};
+      : { status: { not: "rejeitado" as const } };
 
   const appointments = await prisma.appointment.findMany({
     where,
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
 
   // Verifica conflito de horário (mesmo dia, mesma hora, sobreposição de duração)
   const sameDayAppointments = await prisma.appointment.findMany({
-    where: { day: data.day },
+    where: { day: data.day, status: { not: "rejeitado" } },
   });
 
   const hours = [
