@@ -6,6 +6,7 @@ import { Appointment, AppointmentStatus, Patient, User } from "@/lib/types";
 type ModalState =
   | { type: "appointment"; appointment: Appointment }
   | { type: "new"; day: number; time: string }
+  | { type: "atendimento"; appointment: Appointment }
   | null;
 
 interface AppContextValue {
@@ -31,6 +32,9 @@ interface AppContextValue {
   patientsLoading: boolean;
   refreshPatients: () => Promise<void>;
   updatePatient: (id: string, data: Partial<Patient>) => Promise<void>;
+
+  openAtendimento: (a: Appointment) => void;
+  saveAtendimento: (appointmentId: string, formData: FormData) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -83,6 +87,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
+ 
+    const openAtendimento = useCallback((a: Appointment) => {
+    setModal({ type: "atendimento", appointment: a });
   }, []);
 
   const refreshAppointments = useCallback(async () => {

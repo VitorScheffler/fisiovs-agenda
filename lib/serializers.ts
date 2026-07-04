@@ -23,10 +23,20 @@ export function serializePatient(patient: PatientWithHistory): Patient {
     since: patient.since,
     notes: patient.notes,
     appointmentHistory: patient.appointmentHistory.map((h) => ({
+      id: h.id,
+      appointmentId: h.appointmentId,
       date: h.date,
+      time: h.time,
       category: h.category,
+      complaint: h.complaint,
+      procedure: h.procedure,
       note: h.note ?? undefined,
+      attended: h.attended,
+      paymentMethod: h.paymentMethod,
+      paid: h.paid,
+      receiptUrl: h.receiptUrl,
       status: h.status,
     })),
   };
 }
+

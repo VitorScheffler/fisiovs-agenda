@@ -29,10 +29,29 @@ export const categoryLabels: Record<AppointmentCategory, string> = {
 
 export type PatientStatus = "ativo" | "inativo" | "alta";
 
+export type PaymentMethod = "dinheiro" | "pix" | "cartao" | "convenio" | "isento";
+
+export const paymentMethodLabels: Record<PaymentMethod, string> = {
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  cartao: "Cartão",
+  convenio: "Convênio",
+  isento: "Isento",
+};
+
 export type AppointmentHistoryEntry = {
+  id: string;
+  appointmentId?: string | null;
   date: string;
+  time?: string | null;
   category: AppointmentCategory;
-  note?: string;
+  complaint?: string | null;
+  procedure?: string | null;
+  note?: string | null;
+  attended: boolean;
+  paymentMethod?: PaymentMethod | null;
+  paid: boolean;
+  receiptUrl?: string | null;
   status?: AppointmentStatus;
 };
 
@@ -81,3 +100,4 @@ export type User = {
   avatar?: string | null;
   patientId?: string | null;
 };
+

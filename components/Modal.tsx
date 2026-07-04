@@ -147,3 +147,25 @@ export function BtnSecondary({ children, onClick, danger }: { children: React.Re
     </button>
   );
 }
+
+export function TextArea({
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      className="rounded-[10px] border border-[var(--color-line)] bg-[var(--color-paper)] px-3.5 py-2.5 text-[13px] outline-none focus:border-[var(--color-pine-400)] focus:ring-2 focus:ring-[var(--color-pine-100)] w-full resize-none"
+    />
+  );
+}

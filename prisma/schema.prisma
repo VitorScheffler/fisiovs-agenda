@@ -128,7 +128,36 @@ model Appointment {
   category      AppointmentCategory
   note          String?
   status        AppointmentStatus   @default(confirmado)
+  historyEntry  AppointmentHistoryEntry?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+enum PaymentMethod {
+  dinheiro
+  pix
+  cartao
+  convenio
+  isento
+}
+
+model AppointmentHistoryEntry {
+  id            String              @id @default(cuid())
+  patientId     String
+  patient       Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId String?             @unique
+  appointment   Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  date          String // dd/MM/yyyy
+  time          String? // "08:00"
+  category      AppointmentCategory
+  complaint     String? // queixa do dia
+  procedure     String? // o que foi feito
+  note          String?
+  attended      Boolean             @default(true)
+  paymentMethod PaymentMethod?
+  paid          Boolean             @default(false)
+  receiptUrl    String?
+  status        AppointmentStatus   @default(confirmado)
 }
