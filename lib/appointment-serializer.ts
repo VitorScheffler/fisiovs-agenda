@@ -4,7 +4,7 @@ import { Appointment } from "@/lib/types";
 export function serializeAppointment(appt: PrismaAppointment): Appointment {
   return {
     id: appt.id,
-    day: appt.day,
+    date: appt.date.toISOString().slice(0, 10),
     time: appt.time,
     durationSlots: appt.durationSlots,
     patient: appt.patientName,

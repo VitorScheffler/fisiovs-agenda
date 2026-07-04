@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { categoryLabels } from "@/lib/types";
-import { weekDays, weekDates } from "@/lib/mock-data";
+import { formatWeekdayShort, formatDDMMFromISO } from "@/lib/date-utils";
 
 export default function SolicitacoesPage() {
   const { currentUser, appointments, approveAppointment, rejectAppointment } = useApp();
@@ -121,7 +121,7 @@ export default function SolicitacoesPage() {
 
                   <p className="mt-4 text-[13px]">
                     <span className="text-[var(--color-ink-soft)]">Horário:</span>{" "}
-                    {weekDays[req.day]} ({weekDates[req.day]}) • {req.time}
+                    {formatWeekdayShort(req.date)} ({formatDDMMFromISO(req.date)}) • {req.time}
                   </p>
 
                   {req.note && (

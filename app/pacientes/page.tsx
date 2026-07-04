@@ -5,7 +5,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { Patient, PatientStatus, categoryLabels } from "@/lib/types";
 import { calcAge } from "@/lib/patients";
-import { weekDays, weekDates, hours } from "@/lib/mock-data";
+import { hours } from "@/lib/mock-data";
+import { toISODate, getToday } from "@/lib/date-utils";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
 
 const statusLabel: Record<PatientStatus, string> = { ativo: "Ativo", inativo: "Inativo", alta: "Alta" };
@@ -170,7 +171,7 @@ function EditarFichaModal({ open, onClose, patient }: { open: boolean; onClose: 
 function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClose: () => void; patient: Patient }) {
   const { addAppointment } = useApp();
   const catLabels = categoryLabels;
-  const [day, setDay] = useState("0");
+  const [date, setDate] = useState(toISODate(getToday()));
   const [time, setTime] = useState("08:00");
   const [category, setCategory] = useState("avaliacao");
   const [duration, setDuration] = useState("1");
@@ -205,10 +206,8 @@ function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClo
         <ModalHeader title="Agendar consulta" subtitle={patient.name} onClose={onClose} />
         <ModalBody>
           <div className="grid grid-cols-2 gap-3">
-            <FieldGroup label="Dia">
-              <SelectInput value={day} onChange={setDay}>
-                {weekDays.map((d: string, i: number) => <option key={i} value={i}>{d} {weekDates[i]}</option>)}
-              </SelectInput>
+            <FieldGroup label="Data">
+              <TextInput type="date" value={date} onChange={setDate} />
             </FieldGroup>
             <FieldGroup label="Horário">
               <SelectInput value={time} onChange={setTime}>

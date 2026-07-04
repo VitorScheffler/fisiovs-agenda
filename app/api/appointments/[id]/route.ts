@@ -4,7 +4,7 @@ import { requireRole, jsonError, jsonOk, STAFF_ROLES } from "@/lib/api-utils";
 import { serializeAppointment } from "@/lib/appointment-serializer";
 
 const appointmentUpdateSchema = z.object({
-  day: z.number().int().min(0).max(5).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.").optional(),
   time: z.string().min(1).optional(),
   durationSlots: z.number().int().min(1).max(4).optional(),
   patientId: z.string().nullable().optional(),
@@ -39,9 +39,13 @@ export async function PATCH(request: Request, { params }: Params) {
     return jsonError("Agendamento não encontrado.", 404);
   }
 
+  const { date, ...rest } = parsed.data;
   const appointment = await prisma.appointment.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(date ? { date: new Date(date) } : {}),
+    },
   });
 
   return jsonOk({ appointment: serializeAppointment(appointment) });

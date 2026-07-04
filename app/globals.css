@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @keyframes slideInLeft {
   from { transform: translateX(-100%); }
@@ -48,6 +49,45 @@
   --foreground: var(--color-ink);
 }
 
+.dark {
+  /* Brand - ajustado para contraste em fundo escuro */
+  --color-pine-50: #123a3c;
+  --color-pine-100: #164448;
+  --color-pine-200: #1f5c60;
+  --color-pine-400: #3bc4c9;
+  --color-pine-600: #2bc0c5;
+  --color-pine-700: #5fd8dc;
+  --color-pine-900: #0b5f63;
+
+  --color-terracotta-100: #3a2f1a;
+  --color-terracotta-400: #d9b06a;
+  --color-terracotta-600: #e8c688;
+
+  /* Neutrals */
+  --color-paper: #10171a;
+  --color-card: #182124;
+  --color-ink: #e8eef0;
+  --color-ink-soft: #93a3a3;
+  --color-line: #263237;
+
+  /* Appointment categories */
+  --color-cat-avaliacao-bg: #1b3327;
+  --color-cat-avaliacao-fg: #6fcf9e;
+  --color-cat-retorno-bg: #1a2c38;
+  --color-cat-retorno-fg: #7fb8d9;
+  --color-cat-tratamento-bg: #332a17;
+  --color-cat-tratamento-fg: #d9b06a;
+  --color-cat-pilates-bg: #2e2430;
+  --color-cat-pilates-fg: #c398cf;
+  --color-cat-bloqueado-bg: #23292a;
+  --color-cat-bloqueado-fg: #9aa5a5;
+
+  --color-whatsapp: #25d366;
+
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -59,4 +99,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }

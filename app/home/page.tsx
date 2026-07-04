@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { categoryLabels } from "@/lib/types";
-import { getTodayIndex } from "@/lib/date-utils";
+import { getToday, toISODate } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { currentUser, appointments, patients } = useApp();
@@ -15,10 +15,10 @@ export default function HomePage() {
 
   // Destaca o dia de hoje (Seg=0 ... Sáb=5). Domingo não tem atendimentos
   // marcados na grade Seg-Sáb, então a lista fica vazia.
-  const todayIndex = getTodayIndex();
+  const todayISO = toISODate(getToday());
 
   const todayAppointments = appointments
-    .filter((a) => a.day === todayIndex && a.status !== "pendente")
+    .filter((a) => a.date === todayISO && a.status !== "pendente")
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const pendingRequests = appointments.filter((a) => a.status === "pendente");
@@ -26,8 +26,8 @@ export default function HomePage() {
   const activePatients = patients.filter((p) => p.status === "ativo");
 
   const nextAppointment = appointments
-    .filter((a) => a.status !== "pendente")
-    .sort((a, b) => (a.day - b.day) || a.time.localeCompare(b.time))[0];
+    .filter((a) => a.status !== "pendente" && a.date >= todayISO)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0];
 
   return (
     <div className="flex min-h-screen bg-[var(--color-paper)] relative">

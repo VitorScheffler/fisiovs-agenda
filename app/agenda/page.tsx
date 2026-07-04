@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { useApp } from "@/context/AppContext";
-import { hours, weekDates, weekDays } from "@/lib/mock-data";
-import { getCurrentWeekLabel, getTodayIndex } from "@/lib/date-utils";
+import { hours, weekDays } from "@/lib/mock-data";
+import { getWeekLabel, getWeekDates, getWeekISODates, getTodayIndex } from "@/lib/date-utils";
 import { categoryLabels, AppointmentCategory, Appointment } from "@/lib/types";
 
 const legendOrder: AppointmentCategory[] = [
@@ -39,34 +40,52 @@ const CloseIcon = () => (
   </svg>
 );
 
-function groupAppointmentsByDay(appointments: Appointment[]) {
-  const grouped: { day: string; date: string; dayIndex: number; appts: Appointment[] }[] = [];
+function groupAppointmentsByDay(appointments: Appointment[], weekISODates: string[]) {
+  const grouped: { day: string; dayIndex: number; appts: Appointment[] }[] = [];
   for (let i = 0; i < weekDays.length; i++) {
+    const iso = weekISODates[i];
     const dayAppts = appointments
-      .filter((a) => a.day === i)
+      .filter((a) => a.date === iso)
       .sort((a, b) => hours.indexOf(a.time) - hours.indexOf(b.time));
-    grouped.push({
-      day: weekDays[i],
-      date: weekDates[i],
-      dayIndex: i,
-      appts: dayAppts,
-    });
+    grouped.push({ day: weekDays[i], dayIndex: i, appts: dayAppts });
   }
   return grouped;
 }
 
 export default function AgendaPage() {
-  const { currentUser, appointments, appointmentsLoading, openNewSlot, openAppointment } = useApp();
-  // Destaca o dia de hoje na grade (Seg=0 ... Sáb=5). Domingo (null) não tem
-  // dia destacado, pois a grade não inclui Domingo.
-  const todayIndex = getTodayIndex();
-  const newSlotDay = todayIndex ?? 0;
+  const { currentUser, appointments, appointmentsLoading, openNewSlot } = useApp();
 
-  const mobileGrouped = groupAppointmentsByDay(appointments);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
+
+  // Só destaca "hoje" quando está vendo a semana corrente.
+  const todayIndex = weekOffset === 0 ? getTodayIndex() : null;
+
+  const weekDDMM = getWeekDates(weekOffset);
+  const weekISODates = getWeekISODates(weekOffset);
+
+  const mobileGrouped = groupAppointmentsByDay(appointments, weekISODates);
 
   const userName = currentUser?.name ?? "";
   const userRole =
     currentUser?.role === "secretaria" ? "Secretária" : "Fisioterapeuta";
+
+  function handleSlotClick(dayIndex: number, time: string) {
+    const date = weekISODates[dayIndex];
+    setSelectedSlot((prev) =>
+      prev && prev.date === date && prev.time === time ? null : { date, time }
+    );
+  }
+
+  function handleOpenNewAppointment() {
+    if (selectedSlot) {
+      openNewSlot(selectedSlot.date, selectedSlot.time);
+      setSelectedSlot(null);
+      return;
+    }
+    const fallbackDay = weekOffset === 0 ? (getTodayIndex() ?? 0) : 0;
+    openNewSlot(weekISODates[fallbackDay], "08:00");
+  }
 
   return (
     <div className="flex min-h-screen bg-[var(--color-paper)] relative">
@@ -93,7 +112,6 @@ export default function AgendaPage() {
       </div>
 
       <main className="flex-1 min-w-0 px-4 py-5 sm:px-6 md:px-8 md:py-6">
-        {/* Cabeçalho */}
         <div className="flex items-start justify-between gap-3 mb-6">
           <div className="flex items-center gap-3 min-w-0">
             <label
@@ -108,18 +126,20 @@ export default function AgendaPage() {
                 Agenda
               </h1>
               <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-0.5">
-                {getCurrentWeekLabel()}
+                {getWeekLabel(weekOffset)}
               </p>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-1 rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] px-1 py-1">
-              <button className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Semana anterior">
+              <button onClick={() => setWeekOffset((w) => w - 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Semana anterior">
                 ‹
               </button>
-              <span className="px-2 text-[13px] font-medium">Esta semana</span>
-              <button className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Próxima semana">
+              <button onClick={() => setWeekOffset(0)} className="px-2 text-[13px] font-medium hover:text-[var(--color-pine-700)]">
+                {weekOffset === 0 ? "Esta semana" : "Voltar para hoje"}
+              </button>
+              <button onClick={() => setWeekOffset((w) => w + 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Próxima semana">
                 ›
               </button>
             </div>
@@ -137,12 +157,12 @@ export default function AgendaPage() {
               </span>
             </button>
 
-            <button onClick={() => openNewSlot(newSlotDay, "08:00")} className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors">
-              + Novo agendamento
+            <button onClick={handleOpenNewAppointment} className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors">
+              {selectedSlot ? "+ Agendar horário selecionado" : "+ Novo agendamento"}
             </button>
           </div>
 
-          <button onClick={() => openNewSlot(newSlotDay, "08:00")} className="lg:hidden rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors shrink-0">
+          <button onClick={handleOpenNewAppointment} className="lg:hidden rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors shrink-0">
             + Novo
           </button>
         </div>
@@ -151,33 +171,27 @@ export default function AgendaPage() {
           <p className="text-[13px] text-[var(--color-ink-soft)] mb-4">Carregando agenda…</p>
         )}
 
-        {/* Grade semanal (desktop) */}
+        {selectedSlot && (
+          <div className="hidden lg:flex items-center justify-between gap-3 mb-4 rounded-[10px] bg-[var(--color-pine-50)] border border-[var(--color-pine-200)] px-4 py-2.5">
+            <p className="text-[13px] text-[var(--color-pine-700)] font-medium">
+              Horário selecionado: {selectedSlot.time} — clique em &quot;Agendar horário selecionado&quot; para continuar.
+            </p>
+            <button onClick={() => setSelectedSlot(null)} className="text-[12px] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]">
+              Cancelar seleção
+            </button>
+          </div>
+        )}
+
         <div className="hidden lg:block rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-hidden">
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: "64px repeat(6, minmax(0, 1fr))" }}
-          >
+          <div className="grid" style={{ gridTemplateColumns: "64px repeat(6, minmax(0, 1fr))" }}>
             <div className="border-b border-[var(--color-line)]" />
             {weekDays.map((day, i) => (
-              <div
-                key={day}
-                className={`border-b border-l border-[var(--color-line)] px-2 py-3 text-center ${
-                  i === todayIndex ? "bg-[var(--color-pine-50)]" : ""
-                }`}
-              >
-                <p
-                  className={`text-[12px] font-medium ${
-                    i === todayIndex ? "text-[var(--color-pine-700)]" : "text-[var(--color-ink-soft)]"
-                  }`}
-                >
+              <div key={day} className={`border-b border-l border-[var(--color-line)] px-2 py-3 text-center ${i === todayIndex ? "bg-[var(--color-pine-50)]" : ""}`}>
+                <p className={`text-[12px] font-medium ${i === todayIndex ? "text-[var(--color-pine-700)]" : "text-[var(--color-ink-soft)]"}`}>
                   {day}
                 </p>
-                <p
-                  className={`text-[11px] mt-0.5 ${
-                    i === todayIndex ? "text-[var(--color-pine-600)]" : "text-[var(--color-ink-soft)]"
-                  }`}
-                >
-                  {weekDates[i]}
+                <p className={`text-[11px] mt-0.5 ${i === todayIndex ? "text-[var(--color-pine-600)]" : "text-[var(--color-ink-soft)]"}`}>
+                  {weekDDMM[i]}
                 </p>
               </div>
             ))}
@@ -188,31 +202,30 @@ export default function AgendaPage() {
                   {hour}
                 </div>
                 {weekDays.map((_, dayIndex) => {
-                  const appt = appointments.find(
-                    (a) => a.day === dayIndex && a.time === hour
-                  );
+                  const iso = weekISODates[dayIndex];
+                  const appt = appointments.find((a) => a.date === iso && a.time === hour);
                   const isOccupied = appointments.some(
                     (a) =>
-                      a.day === dayIndex &&
+                      a.date === iso &&
                       hours.indexOf(a.time) < hours.indexOf(hour) &&
                       hours.indexOf(a.time) + a.durationSlots > hours.indexOf(hour)
                   );
+                  const isSelected = selectedSlot?.date === iso && selectedSlot?.time === hour;
 
                   return (
                     <div
                       key={dayIndex}
+                      onClick={() => { if (!appt && !isOccupied) handleSlotClick(dayIndex, hour); }}
                       className={`border-b border-l border-[var(--color-line)] p-1.5 min-h-[60px] ${
                         dayIndex === todayIndex ? "bg-[var(--color-pine-50)]/40" : ""
+                      } ${
+                        !appt && !isOccupied ? "cursor-pointer hover:bg-[var(--color-pine-50)]/60 transition-colors" : ""
+                      } ${
+                        isSelected ? "ring-2 ring-inset ring-[var(--color-pine-600)] bg-[var(--color-pine-50)]" : ""
                       }`}
                     >
                       {appt && !isOccupied ? (
-                        <div
-                          style={{
-                            height: `calc(${appt.durationSlots * 100}% + ${
-                              (appt.durationSlots - 1) * 12
-                            }px)`,
-                          }}
-                        >
+                        <div style={{ height: `calc(${appt.durationSlots * 100}% + ${(appt.durationSlots - 1) * 12}px)` }}>
                           <AppointmentCard appointment={appt} />
                         </div>
                       ) : null}
@@ -224,7 +237,6 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        {/* Visualização mobile: lista por dia */}
         <div className="lg:hidden flex flex-col gap-6">
           {mobileGrouped.map((group) => (
             <div key={group.dayIndex} className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-hidden">
@@ -232,15 +244,13 @@ export default function AgendaPage() {
                 <p className="text-[14px] font-medium">
                   {group.day}{" "}
                   <span className="text-[12px] text-[var(--color-ink-soft)] font-normal">
-                    {group.date}
+                    {weekDDMM[group.dayIndex]}
                   </span>
                 </p>
               </div>
               <div className="p-3 flex flex-col gap-2">
                 {group.appts.length === 0 ? (
-                  <p className="text-[13px] text-[var(--color-ink-soft)] py-4 text-center">
-                    Nenhum agendamento
-                  </p>
+                  <p className="text-[13px] text-[var(--color-ink-soft)] py-4 text-center">Nenhum agendamento</p>
                 ) : (
                   group.appts.map((appt) => (
                     <div key={appt.id} className="flex items-start gap-3 py-2 border-b border-[var(--color-line)] last:border-0">
@@ -251,14 +261,10 @@ export default function AgendaPage() {
                         <p className="text-[13px] font-medium truncate">{appt.patient}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className={`w-2 h-2 rounded-full ${legendDot[appt.category]}`} />
-                          <span className="text-[11px] text-[var(--color-ink-soft)]">
-                            {categoryLabels[appt.category]}
-                          </span>
+                          <span className="text-[11px] text-[var(--color-ink-soft)]">{categoryLabels[appt.category]}</span>
                         </div>
                         {appt.status === "pendente" && (
-                          <span className="inline-block mt-1 text-[10px] font-medium text-[var(--color-terracotta-600)]">
-                            Pendente
-                          </span>
+                          <span className="inline-block mt-1 text-[10px] font-medium text-[var(--color-terracotta-600)]">Pendente</span>
                         )}
                       </div>
                     </div>
@@ -269,14 +275,11 @@ export default function AgendaPage() {
           ))}
         </div>
 
-        {/* Legenda */}
         <div className="flex items-center gap-5 mt-4 flex-wrap">
           {legendOrder.map((cat) => (
             <div key={cat} className="flex items-center gap-1.5">
               <span className={`w-2.5 h-2.5 rounded-full ${legendDot[cat]}`} />
-              <span className="text-[12px] text-[var(--color-ink-soft)]">
-                {categoryLabels[cat]}
-              </span>
+              <span className="text-[12px] text-[var(--color-ink-soft)]">{categoryLabels[cat]}</span>
             </div>
           ))}
         </div>

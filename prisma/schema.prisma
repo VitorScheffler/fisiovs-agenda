@@ -110,7 +110,7 @@ model TeamMember {
 
 model Appointment {
   id            String              @id @default(cuid())
-  day           Int // 0 = Segunda ... 5 = Sábado
+  date          DateTime // data real do agendamento
   time          String // "08:00"
   durationSlots Int                 @default(1)
   patientId     String?

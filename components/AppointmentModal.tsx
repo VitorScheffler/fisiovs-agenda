@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { categoryLabels, AppointmentCategory } from "@/lib/types";
-import { weekDays, weekDates, hours } from "@/lib/mock-data";
+import { hours } from "@/lib/mock-data";
+import { fromISODate } from "@/lib/date-utils";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "./Modal";
 
 const categoryStyles: Record<string, string> = {
@@ -14,23 +15,31 @@ const categoryStyles: Record<string, string> = {
   bloqueado: "bg-[var(--color-cat-bloqueado-bg)] text-[var(--color-cat-bloqueado-fg)]",
 };
 
+const WEEKDAY_LONG_PT = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+function formatDateLabel(iso: string): string {
+  const d = fromISODate(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${WEEKDAY_LONG_PT[d.getDay()]}, ${dd}/${mm}`;
+}
+
 export function AppointmentModal() {
   const { modal, closeModal, approveAppointment, rejectAppointment, addAppointment, patients } = useApp();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // New appointment form state
   const [formPatient, setFormPatient] = useState("");
   const [formCategory, setFormCategory] = useState<AppointmentCategory>("avaliacao");
-  const [formDay, setFormDay] = useState<number>(0);
-  const [formTime, setFormTime] = useState("08:00");
+  const [formDate, setFormDate] = useState("");
+  const [formTime, setFormTime] = useState("");
   const [formDuration, setFormDuration] = useState("1");
   const [formNote, setFormNote] = useState("");
 
   if (!modal) return null;
 
   if (modal.type === "new") {
-    const initialDay = modal.day;
+    const initialDate = modal.date;
     const initialTime = modal.time;
 
     async function handleCreate() {
@@ -39,7 +48,7 @@ export function AppointmentModal() {
       setError("");
       try {
         await addAppointment({
-          day: formDay !== undefined ? formDay : initialDay,
+          date: formDate || initialDate,
           time: formTime || initialTime,
           durationSlots: parseInt(formDuration) || 1,
           patient: formPatient.trim(),
@@ -47,7 +56,7 @@ export function AppointmentModal() {
           note: formNote.trim() || null,
           status: "confirmado",
         });
-        setFormPatient(""); setFormNote(""); setFormDuration("1");
+        setFormPatient(""); setFormNote(""); setFormDuration("1"); setFormDate(""); setFormTime("");
         closeModal();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao criar agendamento.");
@@ -61,7 +70,7 @@ export function AppointmentModal() {
         <ModalBox className="max-w-md">
           <ModalHeader
             title="Novo agendamento"
-            subtitle={`${weekDays[initialDay]}, ${weekDates[initialDay]} · ${initialTime}`}
+            subtitle={`${formatDateLabel(formDate || initialDate)} · ${formTime || initialTime}`}
             onClose={closeModal}
           />
           <ModalBody>
@@ -87,12 +96,8 @@ export function AppointmentModal() {
             </FieldGroup>
 
             <div className="grid grid-cols-2 gap-3">
-              <FieldGroup label="Dia">
-                <SelectInput value={String(formDay !== undefined ? formDay : initialDay)} onChange={(v) => setFormDay(Number(v))}>
-                  {weekDays.map((d, i) => (
-                    <option key={i} value={i}>{d} {weekDates[i]}</option>
-                  ))}
-                </SelectInput>
+              <FieldGroup label="Data">
+                <TextInput type="date" value={formDate || initialDate} onChange={setFormDate} />
               </FieldGroup>
               <FieldGroup label="Horário">
                 <SelectInput value={formTime || initialTime} onChange={setFormTime}>
@@ -128,8 +133,7 @@ export function AppointmentModal() {
 
   const { appointment: appt } = modal;
   const isPending = appt.status === "pendente";
-  const dayLabel = weekDays[appt.day];
-  const dateLabel = weekDates[appt.day];
+  const dateLabel = formatDateLabel(appt.date);
 
   async function handleApprove() {
     setSubmitting(true); setError("");
@@ -148,7 +152,6 @@ export function AppointmentModal() {
   return (
     <Modal open onClose={closeModal}>
       <ModalBox>
-        {/* Header colorido pela categoria */}
         <div className={`px-6 py-5 ${categoryStyles[appt.category]}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -167,7 +170,7 @@ export function AppointmentModal() {
 
         <div className="px-6 py-5 flex flex-col gap-4">
           <div className="flex flex-col gap-2.5">
-            <InfoRow icon="calendar" label="Data">{dayLabel}, {dateLabel}</InfoRow>
+            <InfoRow icon="calendar" label="Data">{dateLabel}</InfoRow>
             <InfoRow icon="clock" label="Horário">
               {appt.time}
               {appt.durationSlots > 1 && <span className="text-[var(--color-ink-soft)]"> · {appt.durationSlots}h</span>}

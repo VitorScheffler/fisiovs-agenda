@@ -5,7 +5,7 @@ import { Appointment, AppointmentStatus, Patient, User } from "@/lib/types";
 
 type ModalState =
   | { type: "appointment"; appointment: Appointment }
-  | { type: "new"; day: number; time: string }
+  | { type: "new"; date: string; time: string }
   | { type: "atendimento"; appointment: Appointment }
   | null;
 
@@ -21,7 +21,7 @@ interface AppContextValue {
 
   modal: ModalState;
   openAppointment: (a: Appointment) => void;
-  openNewSlot: (day: number, time: string) => void;
+  openNewSlot: (date: string, time: string) => void;
   closeModal: () => void;
 
   approveAppointment: (id: string) => Promise<void>;
@@ -148,8 +148,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setModal({ type: "appointment", appointment: a });
   }, []);
 
-  const openNewSlot = useCallback((day: number, time: string) => {
-    setModal({ type: "new", day, time });
+  const openNewSlot = useCallback((date: string, time: string) => {
+    setModal({ type: "new", date, time });
   }, []);
 
   const openAtendimento = useCallback((a: Appointment) => {
@@ -177,9 +177,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addAppointment = useCallback(async (a: Omit<Appointment, "id">) => {
+    const { patient, ...rest } = a;
     const data = await apiFetch<{ appointment: Appointment }>("/api/appointments", {
       method: "POST",
-      body: JSON.stringify(a),
+      body: JSON.stringify({ ...rest, patientName: patient }),
     });
     setAppointments((prev) => [...prev, data.appointment]);
   }, []);

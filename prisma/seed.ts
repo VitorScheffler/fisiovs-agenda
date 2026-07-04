@@ -1,6 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+function startOfWeek(): Date {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const dow = now.getDay();
+  const diff = dow === 0 ? 6 : dow - 1;
+  now.setDate(now.getDate() - diff);
+  return now;
+}
+function weekday(offset: number): Date {
+  const d = new Date(startOfWeek());
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
 const prisma = new PrismaClient();
 
 async function hash(pw: string) {
@@ -256,22 +270,21 @@ async function main() {
   console.log("Criando agendamentos da semana...");
   await prisma.appointment.createMany({
     data: [
-      { day: 0, time: "08:00", durationSlots: 1, patientId: joao.id, patientName: "João Silva", category: "avaliacao", status: "confirmado" },
-      { day: 0, time: "10:00", durationSlots: 1, patientId: anaPaula.id, patientName: "Ana Paula", category: "tratamento", note: "Pós-operatória", status: "confirmado" },
-      { day: 0, time: "14:00", durationSlots: 1, patientName: "Fernanda Costa", category: "tratamento", note: "Neurológica", status: "confirmado" },
-      { day: 0, time: "17:00", durationSlots: 1, patientName: "Gabriel Ribeiro", category: "retorno", note: "Alongamento", status: "confirmado" },
+      { date: weekday(0), time: "08:00", durationSlots: 1, patientId: joao.id, patientName: "João Silva", category: "avaliacao", status: "confirmado" },
+      { date: weekday(0), time: "10:00", durationSlots: 1, patientId: anaPaula.id, patientName: "Ana Paula", category: "tratamento", note: "Pós-operatória", status: "confirmado" },
+      { date: weekday(0), time: "14:00", durationSlots: 1, patientName: "Fernanda Costa", category: "tratamento", note: "Neurológica", status: "confirmado" },
+      { date: weekday(0), time: "17:00", durationSlots: 1, patientName: "Gabriel Ribeiro", category: "retorno", note: "Alongamento", status: "confirmado" },
 
-      { day: 2, time: "09:00", durationSlots: 1, patientId: mariana.id, patientName: "Mariana Lima", category: "retorno", note: "Ortopédica", status: "confirmado" },
-      { day: 2, time: "11:00", durationSlots: 1, patientId: lucas.id, patientName: "Lucas Ferreira", category: "pilates", note: "Reabilitação funcional", status: "confirmado" },
-      { day: 2, time: "15:00", durationSlots: 1, patientName: "Ricardo Mendes", category: "tratamento", note: "Desportiva", status: "confirmado" },
+      { date: weekday(2), time: "09:00", durationSlots: 1, patientId: mariana.id, patientName: "Mariana Lima", category: "retorno", note: "Ortopédica", status: "confirmado" },
+      { date: weekday(2), time: "11:00", durationSlots: 1, patientId: lucas.id, patientName: "Lucas Ferreira", category: "pilates", note: "Reabilitação funcional", status: "confirmado" },
+      { date: weekday(2), time: "15:00", durationSlots: 1, patientName: "Ricardo Mendes", category: "tratamento", note: "Desportiva", status: "confirmado" },
 
-      { day: 3, time: "08:00", durationSlots: 1, patientName: "Carlos Oliveira", category: "avaliacao", note: "Respiratória", status: "confirmado" },
-      { day: 3, time: "11:00", durationSlots: 1, patientId: beatriz.id, patientName: "Beatriz Souza", category: "retorno", note: "Dores na coluna", status: "confirmado" },
+      { date: weekday(3), time: "08:00", durationSlots: 1, patientName: "Carlos Oliveira", category: "avaliacao", note: "Respiratória", status: "confirmado" },
+      { date: weekday(3), time: "11:00", durationSlots: 1, patientId: beatriz.id, patientName: "Beatriz Souza", category: "retorno", note: "Dores na coluna", status: "confirmado" },
 
-      { day: 4, time: "14:00", durationSlots: 1, patientName: "Juliana Alves", category: "pilates", note: "Terapêutico", status: "confirmado" },
+      { date: weekday(4), time: "14:00", durationSlots: 1, patientName: "Juliana Alves", category: "pilates", note: "Terapêutico", status: "confirmado" },
 
-      // Exemplo de solicitações pendentes (Solicitações page)
-      { day: 5, time: "14:00", durationSlots: 1, patientId: camila.id, patientName: "Maria Silva", category: "avaliacao", note: "Novo agendamento solicitado", status: "pendente" },
+      { date: weekday(5), time: "14:00", durationSlots: 1, patientId: camila.id, patientName: "Maria Silva", category: "avaliacao", note: "Novo agendamento solicitado", status: "pendente" },
     ],
   });
 

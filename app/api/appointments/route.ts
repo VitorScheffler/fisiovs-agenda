@@ -4,13 +4,13 @@ import { requireSession, jsonError, jsonOk, STAFF_ROLES } from "@/lib/api-utils"
 import { serializeAppointment } from "@/lib/appointment-serializer";
 
 const appointmentSchema = z.object({
-  day: z.number().int().min(0).max(5),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida."),
   time: z.string().min(1),
   durationSlots: z.number().int().min(1).max(4).optional(),
   patientId: z.string().optional(),
   patientName: z.string().min(1, "Nome do paciente é obrigatório."),
   category: z.enum(["avaliacao", "retorno", "tratamento", "pilates", "bloqueado"]),
-  note: z.string().optional(),
+  note: z.string().nullable().optional(),
   status: z.enum(["confirmado", "pendente"]).optional(),
 });
 
@@ -18,9 +18,6 @@ export async function GET() {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
 
-  // Pacientes só veem os próprios agendamentos; equipe vê tudo.
-  // Agendamentos rejeitados ficam preservados no banco (histórico), mas não
-  // aparecem na agenda/lista padrão.
   const where =
     auth.session.role === "paciente"
       ? {
@@ -33,7 +30,7 @@ export async function GET() {
 
   const appointments = await prisma.appointment.findMany({
     where,
-    orderBy: [{ day: "asc" }, { time: "asc" }],
+    orderBy: [{ date: "asc" }, { time: "asc" }],
   });
 
   return jsonOk({ appointments: appointments.map(serializeAppointment) });
@@ -57,7 +54,6 @@ export async function POST(request: Request) {
 
   const data = parsed.data;
 
-  // Pacientes só podem criar solicitações pendentes vinculadas a si mesmos.
   if (auth.session.role === "paciente") {
     const me = await prisma.user.findUnique({ where: { id: auth.session.userId } });
     if (!me?.patientId || data.patientId !== me.patientId) {
@@ -78,9 +74,10 @@ export async function POST(request: Request) {
     }
   }
 
-  // Verifica conflito de horário (mesmo dia, mesma hora, sobreposição de duração)
+  const appointmentDate = new Date(data.date);
+
   const sameDayAppointments = await prisma.appointment.findMany({
-    where: { day: data.day, status: { not: "rejeitado" } },
+    where: { date: appointmentDate, status: { not: "rejeitado" } },
   });
 
   const hours = [
@@ -107,7 +104,7 @@ export async function POST(request: Request) {
 
   const appointment = await prisma.appointment.create({
     data: {
-      day: data.day,
+      date: appointmentDate,
       time: data.time,
       durationSlots: newDuration,
       patientId: data.patientId,

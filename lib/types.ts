@@ -9,7 +9,7 @@ export type AppointmentStatus = "confirmado" | "pendente" | "rejeitado";
 
 export type Appointment = {
   id: string;
-  day: number; // 0 = Segunda ... 5 = Sábado
+  date: string; // "yyyy-MM-dd"
   time: string; // "08:00"
   durationSlots: number; // quantidade de slots de 1h
   patient: string; // nome do paciente (snapshot)

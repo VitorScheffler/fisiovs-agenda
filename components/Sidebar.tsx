@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "./Logo";
 import { useApp } from "@/context/AppContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 type NavItem = {
   label: string;
@@ -156,8 +157,8 @@ export function Sidebar({
       <a
         href="/login"
         onClick={handleLogout}
-        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 bg-red-50/60 hover:bg-red-50 transition-colors cursor-pointer"
-      >
+        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 dark:text-red-400 bg-red-50/60 dark:bg-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/60 transition-colors cursor-pointer"
+        >
         {icons.sair}
         Sair
       </a>
@@ -166,10 +167,11 @@ export function Sidebar({
         <div className="w-8 h-8 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[12px] font-medium">
           {initials}
         </div>
-        <div className="leading-tight">
-          <p className="text-[13px] font-medium">{userName}</p>
+        <div className="leading-tight flex-1 min-w-0">
+          <p className="text-[13px] font-medium truncate">{userName}</p>
           <p className="text-[11px] text-[var(--color-ink-soft)]">{userRole}</p>
         </div>
+        <ThemeToggle />
       </div>
     </aside>
   );
