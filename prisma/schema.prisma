@@ -125,6 +125,19 @@ model Appointment {
   updatedAt DateTime @updatedAt
 }
 
+// Configuração global da clínica (horários de atendimento etc.).
+// Registro único (singleton): sempre acessado/atualizado via id = "singleton".
+model ClinicSettings {
+  id                String   @id @default("singleton")
+  horarioInicio     String   @default("08:00") // "HH:mm"
+  horarioFim        String   @default("18:00") // "HH:mm", "00:00" representa meia-noite
+  duracaoConsulta   Int      @default(60) // minutos
+  intervaloConsulta Int      @default(15) // minutos
+  diasAtendimento   String   @default("1,2,3,4,5,6") // dias da semana (0=Dom..6=Sáb), separados por vírgula
+
+  updatedAt DateTime @updatedAt
+}
+
 
 enum PaymentMethod {
   dinheiro

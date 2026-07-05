@@ -2,6 +2,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSession, jsonError, jsonOk, STAFF_ROLES } from "@/lib/api-utils";
 import { serializeAppointment } from "@/lib/appointment-serializer";
+import { generateAgendaHours, parseDiasAtendimento } from "@/lib/schedule-utils";
+import { fromISODate } from "@/lib/date-utils";
 
 const appointmentSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida."),
@@ -30,6 +32,7 @@ export async function GET() {
 
   const appointments = await prisma.appointment.findMany({
     where,
+    include: { historyEntry: true },
     orderBy: [{ date: "asc" }, { time: "asc" }],
   });
 
@@ -80,10 +83,18 @@ export async function POST(request: Request) {
     where: { date: appointmentDate, status: { not: "rejeitado" } },
   });
 
-  const hours = [
-    "08:00", "09:00", "10:00", "11:00", "12:00",
-    "13:00", "14:00", "15:00", "16:00", "17:00",
-  ];
+  const settings = await prisma.clinicSettings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
+  const hours = generateAgendaHours(settings);
+  const diasAtendimento = parseDiasAtendimento(settings.diasAtendimento);
+
+  if (!diasAtendimento.includes(fromISODate(data.date).getDay())) {
+    return jsonError("A clínica não atende neste dia da semana.", 400);
+  }
+
   const newStart = hours.indexOf(data.time);
   const newDuration = data.durationSlots ?? 1;
 

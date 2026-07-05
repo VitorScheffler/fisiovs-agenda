@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { categoryLabels, AppointmentCategory } from "@/lib/types";
-import { hours } from "@/lib/mock-data";
+import { generateAgendaHours, DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 import { fromISODate } from "@/lib/date-utils";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "./Modal";
+import { AtendimentoModal } from "./AtendimentoModal";
 
 const categoryStyles: Record<string, string> = {
   avaliacao: "bg-[var(--color-cat-avaliacao-bg)] text-[var(--color-cat-avaliacao-fg)]",
@@ -25,7 +26,8 @@ function formatDateLabel(iso: string): string {
 }
 
 export function AppointmentModal() {
-  const { modal, closeModal, approveAppointment, rejectAppointment, addAppointment, patients } = useApp();
+  const { modal, closeModal, approveAppointment, rejectAppointment, addAppointment, patients, agendaConfig, openAtendimento } = useApp();
+  const hours = generateAgendaHours(agendaConfig ?? DEFAULT_AGENDA_CONFIG);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,6 +40,10 @@ export function AppointmentModal() {
 
   if (!modal) return null;
 
+  if (modal.type === "atendimento") {
+    return <AtendimentoModal appointment={modal.appointment} onClose={closeModal} />;
+  }
+
   if (modal.type === "new") {
     const initialDate = modal.date;
     const initialTime = modal.time;
@@ -47,11 +53,13 @@ export function AppointmentModal() {
       setSubmitting(true);
       setError("");
       try {
+        const selectedPatient = patients.length > 0 ? patients.find((p) => p.id === formPatient) : undefined;
         await addAppointment({
           date: formDate || initialDate,
           time: formTime || initialTime,
           durationSlots: parseInt(formDuration) || 1,
-          patient: formPatient.trim(),
+          patient: selectedPatient ? selectedPatient.name : formPatient.trim(),
+          patientId: selectedPatient ? selectedPatient.id : undefined,
           category: formCategory,
           note: formNote.trim() || null,
           status: "confirmado",
@@ -79,7 +87,7 @@ export function AppointmentModal() {
                 <SelectInput value={formPatient} onChange={(v) => { setFormPatient(v); setError(""); }}>
                   <option value="">Selecione um paciente…</option>
                   {patients.map((p) => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </SelectInput>
               ) : (
@@ -134,6 +142,8 @@ export function AppointmentModal() {
   const { appointment: appt } = modal;
   const isPending = appt.status === "pendente";
   const dateLabel = formatDateLabel(appt.date);
+  const isFinalized = !!appt.historyEntry;
+  const canFinalize = !isPending && !!appt.patientId;
 
   async function handleApprove() {
     setSubmitting(true); setError("");
@@ -197,6 +207,26 @@ export function AppointmentModal() {
             </div>
           )}
 
+          {isFinalized && (
+            <div className="rounded-[10px] bg-[var(--color-pine-50)] border border-[var(--color-pine-200)] px-4 py-3">
+              <p className="text-[12px] font-medium text-[var(--color-pine-700)] flex items-center gap-1.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                Atendimento registrado
+              </p>
+              {appt.historyEntry?.procedure && (
+                <p className="text-[12px] text-[var(--color-ink-soft)] mt-1 line-clamp-2">{appt.historyEntry.procedure}</p>
+              )}
+            </div>
+          )}
+
+          {!canFinalize && !isPending && !appt.patientId && (
+            <p className="text-[11px] text-[var(--color-ink-soft)]">
+              Vincule este agendamento a um paciente cadastrado para poder finalizar o atendimento.
+            </p>
+          )}
+
           {error && <p className="text-[12px] text-[var(--color-terracotta-600)]">{error}</p>}
 
           {isPending ? (
@@ -209,7 +239,11 @@ export function AppointmentModal() {
           ) : (
             <div className="flex gap-2 mt-1">
               <BtnSecondary onClick={closeModal}>Fechar</BtnSecondary>
-              <BtnSecondary onClick={closeModal}>Editar</BtnSecondary>
+              {canFinalize && (
+                <BtnPrimary onClick={() => openAtendimento(appt)}>
+                  {isFinalized ? "Editar atendimento" : "Finalizar atendimento"}
+                </BtnPrimary>
+              )}
             </div>
           )}
         </div>

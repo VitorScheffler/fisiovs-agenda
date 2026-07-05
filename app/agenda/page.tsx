@@ -5,8 +5,15 @@ import { Sidebar } from "@/components/Sidebar";
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { AppointmentModal } from "@/components/AppointmentModal";
 import { useApp } from "@/context/AppContext";
-import { hours, weekDays } from "@/lib/mock-data";
-import { getWeekLabel, getWeekDates, getWeekISODates, getTodayIndex } from "@/lib/date-utils";
+import {
+  getPageDates,
+  getPageLabel,
+  isSameDate,
+  getToday,
+  toISODate,
+  WEEKDAY_SHORT_PT,
+} from "@/lib/date-utils";
+import { generateAgendaHours, DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 import { categoryLabels, AppointmentCategory, Appointment } from "@/lib/types";
 
 const legendOrder: AppointmentCategory[] = [
@@ -40,38 +47,53 @@ const CloseIcon = () => (
   </svg>
 );
 
-function groupAppointmentsByDay(appointments: Appointment[], weekISODates: string[]) {
-  const grouped: { day: string; dayIndex: number; appts: Appointment[] }[] = [];
-  for (let i = 0; i < weekDays.length; i++) {
-    const iso = weekISODates[i];
+// Um dia da página atual da agenda, já com os rótulos prontos para exibição.
+type PageDay = { iso: string; label: string; ddmm: string; isToday: boolean };
+
+function buildPageDays(dates: Date[]): PageDay[] {
+  const today = getToday();
+  return dates.map((d) => ({
+    iso: toISODate(d),
+    label: WEEKDAY_SHORT_PT[d.getDay()],
+    ddmm: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+    isToday: isSameDate(d, today),
+  }));
+}
+
+function groupAppointmentsByDay(appointments: Appointment[], days: PageDay[], hoursList: string[]) {
+  return days.map((day, dayIndex) => {
     const dayAppts = appointments
-      .filter((a) => a.date === iso)
-      .sort((a, b) => hours.indexOf(a.time) - hours.indexOf(b.time));
-    grouped.push({ day: weekDays[i], dayIndex: i, appts: dayAppts });
-  }
-  return grouped;
+      .filter((a) => a.date === day.iso)
+      .sort((a, b) => hoursList.indexOf(a.time) - hoursList.indexOf(b.time));
+    return { day: day.label, ddmm: day.ddmm, isToday: day.isToday, dayIndex, appts: dayAppts };
+  });
 }
 
 export default function AgendaPage() {
-  const { currentUser, appointments, appointmentsLoading, openNewSlot } = useApp();
+  const { currentUser, appointments, appointmentsLoading, openNewSlot, agendaConfig } = useApp();
 
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [pageOffset, setPageOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
 
-  // Só destaca "hoje" quando está vendo a semana corrente.
-  const todayIndex = weekOffset === 0 ? getTodayIndex() : null;
+  const effectiveConfig = agendaConfig ?? DEFAULT_AGENDA_CONFIG;
+  const hoursList = generateAgendaHours(effectiveConfig);
+  const pageDates = getPageDates(pageOffset, effectiveConfig.diasAtendimento);
+  const days = buildPageDays(pageDates);
+  const pageLabel = getPageLabel(pageDates);
 
-  const weekDDMM = getWeekDates(weekOffset);
-  const weekISODates = getWeekISODates(weekOffset);
+  // Só existe "hoje" dentro da grade quando a página atual contém a data de hoje
+  // (isso só pode acontecer na página 0, já que as demais são inteiramente passadas ou futuras).
+  const todayIndex = pageOffset === 0 ? days.findIndex((d) => d.isToday) : -1;
 
-  const mobileGrouped = groupAppointmentsByDay(appointments, weekISODates);
+  const mobileGrouped = groupAppointmentsByDay(appointments, days, hoursList);
 
   const userName = currentUser?.name ?? "";
   const userRole =
     currentUser?.role === "secretaria" ? "Secretária" : "Fisioterapeuta";
 
   function handleSlotClick(dayIndex: number, time: string) {
-    const date = weekISODates[dayIndex];
+    const date = days[dayIndex]?.iso;
+    if (!date) return;
     setSelectedSlot((prev) =>
       prev && prev.date === date && prev.time === time ? null : { date, time }
     );
@@ -83,8 +105,9 @@ export default function AgendaPage() {
       setSelectedSlot(null);
       return;
     }
-    const fallbackDay = weekOffset === 0 ? (getTodayIndex() ?? 0) : 0;
-    openNewSlot(weekISODates[fallbackDay], "08:00");
+    // O primeiro dia da página atual é sempre o próximo dia útil disponível
+    // (hoje, na página 0), então serve como padrão razoável para um novo horário.
+    openNewSlot(days[0]?.iso ?? toISODate(getToday()), hoursList[0] ?? "08:00");
   }
 
   return (
@@ -126,20 +149,20 @@ export default function AgendaPage() {
                 Agenda
               </h1>
               <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-0.5">
-                {getWeekLabel(weekOffset)}
+                {pageLabel}
               </p>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-1 rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] px-1 py-1">
-              <button onClick={() => setWeekOffset((w) => w - 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Semana anterior">
+              <button onClick={() => setPageOffset((w) => w - 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Período anterior">
                 ‹
               </button>
-              <button onClick={() => setWeekOffset(0)} className="px-2 text-[13px] font-medium hover:text-[var(--color-pine-700)]">
-                {weekOffset === 0 ? "Esta semana" : "Voltar para hoje"}
+              <button onClick={() => setPageOffset(0)} className="px-2 text-[13px] font-medium hover:text-[var(--color-pine-700)]">
+                {pageOffset === 0 ? "Hoje" : "Voltar para hoje"}
               </button>
-              <button onClick={() => setWeekOffset((w) => w + 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Próxima semana">
+              <button onClick={() => setPageOffset((w) => w + 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Próximo período">
                 ›
               </button>
             </div>
@@ -183,32 +206,32 @@ export default function AgendaPage() {
         )}
 
         <div className="hidden lg:block rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-hidden">
-          <div className="grid" style={{ gridTemplateColumns: "64px repeat(6, minmax(0, 1fr))" }}>
+          <div className="grid" style={{ gridTemplateColumns: `64px repeat(${days.length}, minmax(0, 1fr))` }}>
             <div className="border-b border-[var(--color-line)]" />
-            {weekDays.map((day, i) => (
-              <div key={day} className={`border-b border-l border-[var(--color-line)] px-2 py-3 text-center ${i === todayIndex ? "bg-[var(--color-pine-50)]" : ""}`}>
+            {days.map((day, i) => (
+              <div key={day.iso} className={`border-b border-l border-[var(--color-line)] px-2 py-3 text-center ${i === todayIndex ? "bg-[var(--color-pine-50)]" : ""}`}>
                 <p className={`text-[12px] font-medium ${i === todayIndex ? "text-[var(--color-pine-700)]" : "text-[var(--color-ink-soft)]"}`}>
-                  {day}
+                  {day.label}
                 </p>
                 <p className={`text-[11px] mt-0.5 ${i === todayIndex ? "text-[var(--color-pine-600)]" : "text-[var(--color-ink-soft)]"}`}>
-                  {weekDDMM[i]}
+                  {day.ddmm}
                 </p>
               </div>
             ))}
 
-            {hours.map((hour) => (
+            {hoursList.map((hour) => (
               <div key={hour} className="contents">
                 <div className="border-b border-[var(--color-line)] px-2 py-3 text-right text-[11px] text-[var(--color-ink-soft)]">
                   {hour}
                 </div>
-                {weekDays.map((_, dayIndex) => {
-                  const iso = weekISODates[dayIndex];
+                {days.map((day, dayIndex) => {
+                  const iso = day.iso;
                   const appt = appointments.find((a) => a.date === iso && a.time === hour);
                   const isOccupied = appointments.some(
                     (a) =>
                       a.date === iso &&
-                      hours.indexOf(a.time) < hours.indexOf(hour) &&
-                      hours.indexOf(a.time) + a.durationSlots > hours.indexOf(hour)
+                      hoursList.indexOf(a.time) < hoursList.indexOf(hour) &&
+                      hoursList.indexOf(a.time) + a.durationSlots > hoursList.indexOf(hour)
                   );
                   const isSelected = selectedSlot?.date === iso && selectedSlot?.time === hour;
 
@@ -240,11 +263,11 @@ export default function AgendaPage() {
         <div className="lg:hidden flex flex-col gap-6">
           {mobileGrouped.map((group) => (
             <div key={group.dayIndex} className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-hidden">
-              <div className={`px-4 py-3 border-b border-[var(--color-line)] ${group.dayIndex === todayIndex ? "bg-[var(--color-pine-50)]" : ""}`}>
+              <div className={`px-4 py-3 border-b border-[var(--color-line)] ${group.isToday ? "bg-[var(--color-pine-50)]" : ""}`}>
                 <p className="text-[14px] font-medium">
                   {group.day}{" "}
                   <span className="text-[12px] text-[var(--color-ink-soft)] font-normal">
-                    {weekDDMM[group.dayIndex]}
+                    {group.ddmm}
                   </span>
                 </p>
               </div>

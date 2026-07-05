@@ -46,6 +46,7 @@ export async function PATCH(request: Request, { params }: Params) {
       ...rest,
       ...(date ? { date: new Date(date) } : {}),
     },
+    include: { historyEntry: true },
   });
 
   return jsonOk({ appointment: serializeAppointment(appointment) });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { Appointment, AppointmentStatus, Patient, User } from "@/lib/types";
+import { AgendaConfig, Appointment, AppointmentStatus, Patient, User } from "@/lib/types";
 
 type ModalState =
   | { type: "appointment"; appointment: Appointment }
@@ -35,6 +35,11 @@ interface AppContextValue {
 
   openAtendimento: (a: Appointment) => void;
   saveAtendimento: (appointmentId: string, formData: FormData) => Promise<void>;
+
+  agendaConfig: AgendaConfig | null;
+  agendaConfigLoading: boolean;
+  refreshAgendaConfig: () => Promise<void>;
+  updateAgendaConfig: (config: AgendaConfig) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -70,6 +75,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [patientsLoading, setPatientsLoading] = useState(false);
 
   const [modal, setModal] = useState<ModalState>(null);
+
+  const [agendaConfig, setAgendaConfig] = useState<AgendaConfig | null>(null);
+  const [agendaConfigLoading, setAgendaConfigLoading] = useState(false);
 
   // Carrega sessão atual ao montar
   useEffect(() => {
@@ -109,19 +117,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshAgendaConfig = useCallback(async () => {
+    setAgendaConfigLoading(true);
+    try {
+      const data = await apiFetch<{ agendaConfig: AgendaConfig }>("/api/settings/agenda");
+      setAgendaConfig(data.agendaConfig);
+    } finally {
+      setAgendaConfigLoading(false);
+    }
+  }, []);
+
   // Carrega dados sempre que o usuário muda (login/logout)
   useEffect(() => {
     if (!currentUser) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset intencional ao deslogar
       setAppointments([]);
       setPatients([]);
+      setAgendaConfig(null);
       return;
     }
     refreshAppointments().catch(() => {});
     if (currentUser.role !== "paciente") {
       refreshPatients().catch(() => {});
+      refreshAgendaConfig().catch(() => {});
     }
-  }, [currentUser, refreshAppointments, refreshPatients]);
+  }, [currentUser, refreshAppointments, refreshPatients, refreshAgendaConfig]);
 
   const login = useCallback(
     async (email: string, password: string): Promise<{ user: User } | { error: string }> => {
@@ -203,9 +223,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) {
       throw new Error(data?.error ?? `Erro ao salvar atendimento (${res.status})`);
     }
-    await refreshPatients();
+    await Promise.all([refreshPatients(), refreshAppointments()]);
     setModal(null);
-  }, [refreshPatients]);
+  }, [refreshPatients, refreshAppointments]);
+
+  const updateAgendaConfig = useCallback(async (config: AgendaConfig) => {
+    const data = await apiFetch<{ agendaConfig: AgendaConfig }>("/api/settings/agenda", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    });
+    setAgendaConfig(data.agendaConfig);
+  }, []);
 
   return (
     <AppContext.Provider
@@ -230,6 +258,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatePatient,
         openAtendimento,
         saveAtendimento,
+        agendaConfig,
+        agendaConfigLoading,
+        refreshAgendaConfig,
+        updateAgendaConfig,
       }}
     >
       {children}

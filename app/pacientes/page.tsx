@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
-import { Patient, PatientStatus, categoryLabels } from "@/lib/types";
+import { Patient, PatientStatus, categoryLabels, AppointmentHistoryEntry, paymentMethodLabels } from "@/lib/types";
 import { calcAge } from "@/lib/patients";
-import { hours } from "@/lib/mock-data";
+import { generateAgendaHours, DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 import { toISODate, getToday } from "@/lib/date-utils";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
 
@@ -169,10 +169,11 @@ function EditarFichaModal({ open, onClose, patient }: { open: boolean; onClose: 
 
 // --- Modal: Agendar Consulta ---
 function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClose: () => void; patient: Patient }) {
-  const { addAppointment } = useApp();
+  const { addAppointment, agendaConfig } = useApp();
+  const hours = generateAgendaHours(agendaConfig ?? DEFAULT_AGENDA_CONFIG);
   const catLabels = categoryLabels;
   const [date, setDate] = useState(toISODate(getToday()));
-  const [time, setTime] = useState("08:00");
+  const [time, setTime] = useState(hours[0] ?? "08:00");
   const [category, setCategory] = useState("avaliacao");
   const [duration, setDuration] = useState("1");
   const [note, setNote] = useState("");
@@ -183,7 +184,7 @@ function AgendarConsultaModal({ open, onClose, patient }: { open: boolean; onClo
     setSaving(true); setError("");
     try {
       await addAppointment({
-        day: parseInt(day),
+        date,
         time,
         durationSlots: parseInt(duration),
         patient: patient.name,
@@ -372,6 +373,7 @@ export default function PacientesPage() {
 
 function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: Patient; onClose: () => void; onEditar: () => void; onAgendar: () => void }) {
   const age = calcAge(p.birthDate);
+  const [selectedEntry, setSelectedEntry] = useState<AppointmentHistoryEntry | null>(null);
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 sm:px-6 py-5 border-b border-[var(--color-line)] flex items-start justify-between gap-3 sticky top-0 bg-[var(--color-card)] z-10">
@@ -409,13 +411,18 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
         <Section title={`Histórico (${p.appointmentHistory.length} atendimentos)`}>
           <div className="flex flex-col gap-1.5">
             {p.appointmentHistory.slice().reverse().map((a, i) => (
-              <div key={i} className="flex items-center gap-3 py-1.5 border-b border-[var(--color-line)] last:border-0">
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSelectedEntry(a)}
+                className="flex items-center gap-3 py-1.5 border-b border-[var(--color-line)] last:border-0 text-left hover:bg-[var(--color-paper)] transition-colors rounded-[6px] -mx-1 px-1"
+              >
                 <span className={`w-2 h-2 rounded-full shrink-0 ${{ avaliacao: "bg-[var(--color-cat-avaliacao-fg)]", retorno: "bg-[var(--color-cat-retorno-fg)]", tratamento: "bg-[var(--color-cat-tratamento-fg)]", pilates: "bg-[var(--color-cat-pilates-fg)]", bloqueado: "bg-[var(--color-cat-bloqueado-fg)]" }[a.category]}`} />
                 <span className="text-[12px] text-[var(--color-ink-soft)] w-[72px] shrink-0">{a.date}</span>
                 <span className="text-[12px] font-medium">{categoryLabels[a.category]}</span>
                 {a.note && <span className="text-[12px] text-[var(--color-ink-soft)] truncate">— {a.note}</span>}
                 {a.status === "pendente" && <span className="ml-auto text-[10px] font-medium text-[var(--color-terracotta-600)] shrink-0">Pendente</span>}
-              </div>
+              </button>
             ))}
           </div>
         </Section>
@@ -425,7 +432,63 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
         <button onClick={onEditar} className="flex-1 rounded-[10px] border border-[var(--color-line)] py-2.5 text-[13px] font-medium hover:bg-[var(--color-paper)] transition-colors">Editar ficha</button>
         <button onClick={onAgendar} className="flex-1 rounded-[10px] bg-[var(--color-pine-600)] text-white py-2.5 text-[13px] font-medium hover:bg-[var(--color-pine-700)] transition-colors">Agendar consulta</button>
       </div>
+
+      {selectedEntry && (
+        <HistoricoDetalheModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+      )}
     </div>
+  );
+}
+
+function HistoricoDetalheModal({ entry, onClose }: { entry: AppointmentHistoryEntry; onClose: () => void }) {
+  return (
+    <Modal open onClose={onClose}>
+      <ModalBox className="max-w-md">
+        <ModalHeader
+          title="Detalhes do atendimento"
+          subtitle={`${entry.date}${entry.time ? ` · ${entry.time}` : ""} · ${categoryLabels[entry.category]}`}
+          onClose={onClose}
+        />
+        <ModalBody>
+          <div className="flex items-center gap-2">
+            <span className={`text-[11px] font-medium rounded-full px-2.5 py-1 ${entry.attended ? "bg-[var(--color-pine-50)] text-[var(--color-pine-700)]" : "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]"}`}>
+              {entry.attended ? "Compareceu" : "Não compareceu"}
+            </span>
+            {entry.status === "pendente" && (
+              <span className="text-[11px] font-medium rounded-full px-2.5 py-1 bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]">Pendente</span>
+            )}
+          </div>
+
+          <Section title="Queixa do dia">
+            <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">{entry.complaint || "Não informado."}</p>
+          </Section>
+
+          <Section title="O que foi feito">
+            <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">{entry.procedure || "Não informado."}</p>
+          </Section>
+
+          {entry.note && (
+            <Section title="Observação">
+              <p className="text-[13px] text-[var(--color-ink-soft)] leading-relaxed">{entry.note}</p>
+            </Section>
+          )}
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+            <Field label="Forma de pagamento" value={entry.paymentMethod ? paymentMethodLabels[entry.paymentMethod] : "—"} />
+            <Field label="Pago?" value={entry.paid ? "Sim" : "Não"} />
+          </div>
+
+          {entry.receiptUrl && (
+            <a href={entry.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-[var(--color-pine-600)] underline">
+              Ver comprovante de pagamento
+            </a>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <BtnSecondary onClick={onClose}>Fechar</BtnSecondary>
+        </ModalFooter>
+      </ModalBox>
+    </Modal>
   );
 }
 

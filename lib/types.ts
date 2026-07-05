@@ -17,6 +17,11 @@ export type Appointment = {
   category: AppointmentCategory;
   note?: string | null;
   status?: AppointmentStatus;
+  // Preenchido quando o atendimento já foi finalizado (registrado) para este agendamento.
+  historyEntry?: Pick<
+    AppointmentHistoryEntry,
+    "complaint" | "procedure" | "note" | "attended" | "paymentMethod" | "paid" | "receiptUrl"
+  > | null;
 };
 
 export const categoryLabels: Record<AppointmentCategory, string> = {
@@ -100,4 +105,14 @@ export type User = {
   avatar?: string | null;
   patientId?: string | null;
 };
+
+// Configuração global de horários de atendimento da clínica.
+export type AgendaConfig = {
+  horarioInicio: string; // "HH:mm"
+  horarioFim: string; // "HH:mm", "00:00" representa meia-noite (fim do dia)
+  duracaoConsulta: number; // minutos
+  intervaloConsulta: number; // minutos
+  diasAtendimento: number[]; // dias da semana em que a clínica atende (0=Dom..6=Sáb)
+};
+
 

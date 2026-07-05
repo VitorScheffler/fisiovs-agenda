@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
+import type { AgendaConfig } from "@/lib/types";
+import { DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,19 +64,99 @@ function EditarPerfilModal({ open, onClose, user }: { open: boolean; onClose: ()
   );
 }
 
+// --- Utilidades de horário ---
+
+// Gera todos os horários do dia, de 00:00 a 23:45, em passos de 15 minutos.
+function generateTimeOptions(stepMinutes = 15): string[] {
+  const options: string[] = [];
+  for (let minutes = 0; minutes < 24 * 60; minutes += stepMinutes) {
+    const h = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const m = String(minutes % 60).padStart(2, "0");
+    options.push(`${h}:${m}`);
+  }
+  return options;
+}
+
+const TIME_OPTIONS = generateTimeOptions(15);
+// "00:00" extra ao final representa meia-noite como limite de fechamento (fim do dia).
+const END_TIME_OPTIONS = [...TIME_OPTIONS.slice(1), "00:00"];
+
+const WEEKDAY_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" },
+  { value: 0, label: "Dom" },
+];
+
 // --- Modal: Configurar Agenda ---
-function ConfigAgendaModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [inicio, setInicio] = useState("08:00");
-  const [fim, setFim] = useState("18:00");
-  const [duracao, setDuracao] = useState("60");
-  const [intervalo, setIntervalo] = useState("15");
+function ConfigAgendaModal({
+  open,
+  onClose,
+  config,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  config: AgendaConfig;
+  onSave: (config: AgendaConfig) => Promise<void>;
+}) {
+  const [inicio, setInicio] = useState(config.horarioInicio);
+  const [fim, setFim] = useState(config.horarioFim);
+  const [duracao, setDuracao] = useState(String(config.duracaoConsulta));
+  const [intervalo, setIntervalo] = useState(String(config.intervaloConsulta));
+  const [dias, setDias] = useState<number[]>(config.diasAtendimento);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // Sempre que o modal abrir, sincroniza os campos com a configuração salva.
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronização intencional ao abrir o modal
+      setInicio(config.horarioInicio);
+      setFim(config.horarioFim);
+      setDuracao(String(config.duracaoConsulta));
+      setIntervalo(String(config.intervaloConsulta));
+      setDias(config.diasAtendimento);
+      setError("");
+    }
+  }, [open, config]);
+
+  function toggleDia(value: number) {
+    setDias((prev) =>
+      prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value].sort((a, b) => a - b)
+    );
+  }
 
   async function handleSave() {
+    if (dias.length === 0) {
+      setError("Selecione pelo menos um dia de atendimento.");
+      return;
+    }
+    // "00:00" como fim representa meia-noite (fim do dia). Só bloqueamos
+    // início === fim quando não for o caso especial 00:00–00:00 (dia inteiro).
+    if (inicio === fim && !(inicio === "00:00" && fim === "00:00")) {
+      setError("O horário de início e fim não podem ser iguais.");
+      return;
+    }
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 700));
-    setSaving(false);
-    onClose();
+    setError("");
+    try {
+      await onSave({
+        horarioInicio: inicio,
+        horarioFim: fim,
+        duracaoConsulta: Number(duracao),
+        intervaloConsulta: Number(intervalo),
+        diasAtendimento: dias,
+      });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar configuração da agenda.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -82,15 +164,36 @@ function ConfigAgendaModal({ open, onClose }: { open: boolean; onClose: () => vo
       <ModalBox>
         <ModalHeader title="Configurar agenda" subtitle="Horários de atendimento" onClose={onClose} />
         <ModalBody>
+          <FieldGroup label="Dias de atendimento">
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAY_OPTIONS.map(({ value, label }) => {
+                const active = dias.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleDia(value)}
+                    className={`px-3 py-1.5 rounded-[8px] text-[12px] font-medium border transition-colors ${
+                      active
+                        ? "bg-[var(--color-pine-600)] text-white border-[var(--color-pine-600)]"
+                        : "bg-[var(--color-card)] text-[var(--color-ink-soft)] border-[var(--color-line)] hover:bg-[var(--color-paper)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </FieldGroup>
           <div className="grid grid-cols-2 gap-3">
             <FieldGroup label="Início">
               <SelectInput value={inicio} onChange={setInicio}>
-                {["06:00","07:00","08:00","09:00"].map(h => <option key={h} value={h}>{h}</option>)}
+                {TIME_OPTIONS.map(h => <option key={h} value={h}>{h}</option>)}
               </SelectInput>
             </FieldGroup>
             <FieldGroup label="Fim">
               <SelectInput value={fim} onChange={setFim}>
-                {["17:00","18:00","19:00","20:00"].map(h => <option key={h} value={h}>{h}</option>)}
+                {END_TIME_OPTIONS.map(h => <option key={h} value={h}>{h === "00:00" ? "00:00 (meia-noite)" : h}</option>)}
               </SelectInput>
             </FieldGroup>
           </div>
@@ -105,11 +208,13 @@ function ConfigAgendaModal({ open, onClose }: { open: boolean; onClose: () => vo
           <FieldGroup label="Intervalo entre atendimentos">
             <SelectInput value={intervalo} onChange={setIntervalo}>
               <option value="0">Sem intervalo</option>
+
               <option value="10">10 minutos</option>
               <option value="15">15 minutos</option>
               <option value="30">30 minutos</option>
             </SelectInput>
           </FieldGroup>
+          {error && <p className="text-[12px] text-[var(--color-terracotta-600)]">{error}</p>}
         </ModalBody>
         <ModalFooter>
           <BtnSecondary onClick={onClose}>Cancelar</BtnSecondary>
@@ -262,13 +367,43 @@ function GoogleModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   );
 }
 
+const WEEKDAY_SHORT_ORDER: { value: number; label: string }[] = [
+  { value: 0, label: "Dom" },
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" },
+];
+
+function describeDiasAtendimento(dias: number[]): string {
+  if (dias.length === 7) return "Todos os dias";
+  const segToSab = [1, 2, 3, 4, 5, 6];
+  if (dias.length === 6 && segToSab.every((d) => dias.includes(d))) return "Segunda a sábado";
+  const segToSex = [1, 2, 3, 4, 5];
+  if (dias.length === 5 && segToSex.every((d) => dias.includes(d))) return "Segunda a sexta";
+  return WEEKDAY_SHORT_ORDER.filter((d) => dias.includes(d.value))
+    .map((d) => d.label)
+    .join(", ");
+}
+
 export default function ConfiguracoesPage() {
-  const { currentUser } = useApp();
+  const { currentUser, agendaConfig, agendaConfigLoading, updateAgendaConfig } = useApp();
   const [showPerfil, setShowPerfil] = useState(false);
   const [showAgenda, setShowAgenda] = useState(false);
   const [showSenha, setShowSenha] = useState(false);
   const [showSessoes, setShowSessoes] = useState(false);
   const [showGoogle, setShowGoogle] = useState(false);
+
+  // Enquanto a configuração real ainda não chegou do banco, usamos um valor
+  // padrão apenas para exibição/preenchimento inicial do formulário.
+  const effectiveAgendaConfig = agendaConfig ?? DEFAULT_AGENDA_CONFIG;
+  const intervaloLabel =
+    effectiveAgendaConfig.intervaloConsulta === 0
+      ? "Sem intervalo"
+      : `${effectiveAgendaConfig.intervaloConsulta} minutos`;
+  const diasLabel = describeDiasAtendimento(effectiveAgendaConfig.diasAtendimento);
 
   const userName = currentUser?.name ?? "";
   const userRole = currentUser?.role === "secretaria" ? "Secretária" : "Fisioterapeuta";
@@ -311,11 +446,12 @@ export default function ConfiguracoesPage() {
             <h2 className="text-[17px] sm:text-[18px] font-medium text-[var(--color-pine-700)]">Agenda</h2>
             <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-1">Configure seus horários de atendimento.</p>
             <div className="mt-4 sm:mt-5 space-y-3 text-[13px] sm:text-[14px]">
-              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Horário padrão</p><p>08:00 – 18:00</p></div>
-              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Duração padrão da consulta</p><p>60 minutos</p></div>
-              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Intervalo entre atendimentos</p><p>15 minutos</p></div>
+              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Dias de atendimento</p><p>{diasLabel}</p></div>
+              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Horário padrão</p><p>{effectiveAgendaConfig.horarioInicio} – {effectiveAgendaConfig.horarioFim}</p></div>
+              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Duração padrão da consulta</p><p>{effectiveAgendaConfig.duracaoConsulta} minutos</p></div>
+              <div><p className="text-[11px] sm:text-[12px] text-[var(--color-ink-soft)]">Intervalo entre atendimentos</p><p>{intervaloLabel}</p></div>
             </div>
-            <button onClick={() => setShowAgenda(true)} className="mt-5 sm:mt-6 w-full sm:w-auto rounded-[10px] border border-[var(--color-line)] px-4 py-2.5 text-[13px] font-medium hover:bg-[var(--color-paper)] transition-colors">Configurar agenda</button>
+            <button onClick={() => setShowAgenda(true)} disabled={agendaConfigLoading} className="mt-5 sm:mt-6 w-full sm:w-auto rounded-[10px] border border-[var(--color-line)] px-4 py-2.5 text-[13px] font-medium hover:bg-[var(--color-paper)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">Configurar agenda</button>
           </section>
 
           <section className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] p-4 sm:p-5 md:p-6">
@@ -343,7 +479,7 @@ export default function ConfiguracoesPage() {
       </main>
 
       <EditarPerfilModal open={showPerfil} onClose={() => setShowPerfil(false)} user={currentUser} />
-      <ConfigAgendaModal open={showAgenda} onClose={() => setShowAgenda(false)} />
+      <ConfigAgendaModal open={showAgenda} onClose={() => setShowAgenda(false)} config={effectiveAgendaConfig} onSave={updateAgendaConfig} />
       <AlterarSenhaModal open={showSenha} onClose={() => setShowSenha(false)} />
       <SessoesModal open={showSessoes} onClose={() => setShowSessoes(false)} />
       <GoogleModal open={showGoogle} onClose={() => setShowGoogle(false)} />
