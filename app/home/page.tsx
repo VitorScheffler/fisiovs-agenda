@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { categoryLabels } from "@/lib/types";
-import { getToday, toISODate } from "@/lib/date-utils";
+import { getToday, toISODate, isSameDate, fromISODate, formatWeekdayShort, formatDDMMFromISO } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { currentUser, appointments, patients } = useApp();
@@ -18,7 +18,7 @@ export default function HomePage() {
   const todayISO = toISODate(getToday());
 
   const todayAppointments = appointments
-    .filter((a) => a.date === todayISO && a.status !== "pendente")
+    .filter((a) => a.date === todayISO && a.status !== "pendente" && a.status !== "cancelado")
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const pendingRequests = appointments.filter((a) => a.status === "pendente");
@@ -26,8 +26,19 @@ export default function HomePage() {
   const activePatients = patients.filter((p) => p.status === "ativo");
 
   const nextAppointment = appointments
-    .filter((a) => a.status !== "pendente" && a.date >= todayISO)
+    .filter((a) => a.status !== "pendente" && a.status !== "cancelado" && a.date >= todayISO)
     .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0];
+
+  // Rótulo compacto de data para o próximo atendimento: "Hoje", "Amanhã" ou "Sáb, 12/07".
+  function formatNextAppointmentDate(iso: string): string {
+    const today = getToday();
+    const date = fromISODate(iso);
+    if (isSameDate(date, today)) return "Hoje";
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    if (isSameDate(date, tomorrow)) return "Amanhã";
+    return `${formatWeekdayShort(iso)}, ${formatDDMMFromISO(iso)}`;
+  }
 
   return (
     <div className="flex min-h-screen bg-[var(--color-paper)] relative">
@@ -71,7 +82,7 @@ export default function HomePage() {
 
         <div className="mb-6 sm:mb-8">
           <h1 className="font-display text-[22px] sm:text-[24px] md:text-[26px] font-medium text-[var(--color-pine-700)]">
-            Bom dia, {firstName} 👋
+            Olá, {firstName}
           </h1>
           <p className="text-[13px] sm:text-[14px] text-[var(--color-ink-soft)] mt-1">
             Você tem {todayAppointments.length} atendimento{todayAppointments.length === 1 ? "" : "s"} agendado{todayAppointments.length === 1 ? "" : "s"} para hoje.
@@ -97,9 +108,15 @@ export default function HomePage() {
 
           <div className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-card)] p-4 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <p className="text-[13px] text-[var(--color-ink-soft)] mb-2">Próximo atendimento</p>
-            <p className="text-[26px] sm:text-[30px] font-semibold text-[var(--color-pine-600)]">
-              {nextAppointment ? nextAppointment.time : "—"}
-            </p>
+            {nextAppointment ? (
+              <p className="text-[20px] sm:text-[22px] font-semibold text-[var(--color-pine-600)] leading-tight">
+                {formatNextAppointmentDate(nextAppointment.date)}
+                <span className="text-[var(--color-ink-soft)] font-medium"> · </span>
+                {nextAppointment.time}
+              </p>
+            ) : (
+              <p className="text-[26px] sm:text-[30px] font-semibold text-[var(--color-pine-600)]">—</p>
+            )}
           </div>
         </div>
 

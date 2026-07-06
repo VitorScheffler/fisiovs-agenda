@@ -23,8 +23,34 @@ const roleIcon: Record<string, React.ReactNode> = {
 const MenuIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
 const CloseIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 
-// --- Modal: Convidar Membro ---
-function ConvidarModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+const AVATAR_COLORS = [
+  "bg-[var(--color-pine-100)] text-[var(--color-pine-700)]",
+  "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]",
+  "bg-[var(--color-cat-avaliacao-bg)] text-[var(--color-cat-avaliacao-fg)]",
+  "bg-[var(--color-cat-retorno-bg)] text-[var(--color-cat-retorno-fg)]",
+  "bg-[var(--color-cat-tratamento-bg)] text-[var(--color-cat-tratamento-fg)]",
+  "bg-[var(--color-cat-pilates-bg)] text-[var(--color-cat-pilates-fg)]",
+];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const initials = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+  return initials || "?";
+}
+
+function pickAvatarColor(seed: string): string {
+  const hash = seed.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function getSinceLabel(): string {
+  const now = new Date();
+  const label = now.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// --- Modal: Criar Membro ---
+function CriarMembroModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (member: TeamMember) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Fisioterapeuta");
@@ -33,19 +59,36 @@ function ConvidarModal({ open, onClose }: { open: boolean; onClose: () => void }
   const [specialty, setSpecialty] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
-  function reset() { setName(""); setEmail(""); setPhone(""); setCrefito(""); setSpecialty(""); setError(""); setSuccess(false); }
+  function reset() { setName(""); setEmail(""); setPhone(""); setCrefito(""); setSpecialty(""); setError(""); }
 
   async function handleSave() {
-    if (!name.trim() || !email.trim()) { setError("Nome e e-mail são obrigatórios."); return; }
+    if (!name.trim() || !email.trim() || !phone.trim()) { setError("Nome, e-mail e telefone são obrigatórios."); return; }
     setSaving(true); setError("");
     try {
-      await new Promise((r) => setTimeout(r, 700));
-      setSuccess(true);
-      setTimeout(() => { reset(); onClose(); }, 1500);
+      const res = await fetch("/api/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          role,
+          phone: phone.trim(),
+          crefito: crefito.trim() || undefined,
+          specialty: specialty.trim() || undefined,
+          since: getSinceLabel(),
+          initials: getInitials(name),
+          color: pickAvatarColor(email.trim() || name.trim()),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data?.error ?? "Erro ao criar membro."); return; }
+      onCreated(data.member);
+      reset();
+      onClose();
     } catch {
-      setError("Erro ao convidar membro.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -56,52 +99,38 @@ function ConvidarModal({ open, onClose }: { open: boolean; onClose: () => void }
   return (
     <Modal open={open} onClose={handleClose}>
       <ModalBox className="max-w-md">
-        <ModalHeader title="Convidar membro" subtitle="Um convite será enviado por e-mail" onClose={handleClose} />
+        <ModalHeader title="Criar membro" subtitle="Cadastre um novo integrante da equipe" onClose={handleClose} />
         <ModalBody>
-          {success ? (
-            <div className="py-6 flex flex-col items-center gap-3 text-center">
-              <div className="w-12 h-12 rounded-full bg-[var(--color-pine-50)] flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-pine-600)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              </div>
-              <p className="font-medium text-[var(--color-pine-700)]">Convite enviado!</p>
-              <p className="text-[13px] text-[var(--color-ink-soft)]">{name} receberá um e-mail com as instruções de acesso.</p>
-            </div>
-          ) : (
+          <FieldGroup label="Nome completo *"><TextInput value={name} onChange={setName} placeholder="Ex: Dra. Mariana Souza" /></FieldGroup>
+          <FieldGroup label="E-mail *"><TextInput value={email} onChange={setEmail} type="email" placeholder="email@exemplo.com" /></FieldGroup>
+          <FieldGroup label="Função">
+            <SelectInput value={role} onChange={setRole}>
+              <option value="Fisioterapeuta">Fisioterapeuta</option>
+              <option value="Secretaria">Secretaria</option>
+              <option value="Auxiliar">Auxiliar</option>
+              <option value="TI">TI</option>
+            </SelectInput>
+          </FieldGroup>
+          <FieldGroup label="Telefone *"><TextInput value={phone} onChange={setPhone} placeholder="(00) 00000-0000" /></FieldGroup>
+          {role === "Fisioterapeuta" && (
             <>
-              <FieldGroup label="Nome completo *"><TextInput value={name} onChange={setName} placeholder="Ex: Dra. Mariana Souza" /></FieldGroup>
-              <FieldGroup label="E-mail *"><TextInput value={email} onChange={setEmail} type="email" placeholder="email@exemplo.com" /></FieldGroup>
-              <FieldGroup label="Função">
-                <SelectInput value={role} onChange={setRole}>
-                  <option value="Fisioterapeuta">Fisioterapeuta</option>
-                  <option value="Secretaria">Secretaria</option>
-                  <option value="Auxiliar">Auxiliar</option>
-                  <option value="TI">TI</option>
-                </SelectInput>
-              </FieldGroup>
-              <FieldGroup label="Telefone"><TextInput value={phone} onChange={setPhone} placeholder="(00) 00000-0000" /></FieldGroup>
-              {role === "Fisioterapeuta" && (
-                <>
-                  <FieldGroup label="CREFITO"><TextInput value={crefito} onChange={setCrefito} placeholder="Ex: CREFITO-3/12345-F" /></FieldGroup>
-                  <FieldGroup label="Especialidade"><TextInput value={specialty} onChange={setSpecialty} placeholder="Ex: Ortopedia e Traumatologia" /></FieldGroup>
-                </>
-              )}
-              {error && <p className="text-[12px] text-[var(--color-terracotta-600)]">{error}</p>}
+              <FieldGroup label="CREFITO"><TextInput value={crefito} onChange={setCrefito} placeholder="Ex: CREFITO-3/12345-F" /></FieldGroup>
+              <FieldGroup label="Especialidade"><TextInput value={specialty} onChange={setSpecialty} placeholder="Ex: Ortopedia e Traumatologia" /></FieldGroup>
             </>
           )}
+          {error && <p className="text-[12px] text-[var(--color-terracotta-600)]">{error}</p>}
         </ModalBody>
-        {!success && (
-          <ModalFooter>
-            <BtnSecondary onClick={handleClose}>Cancelar</BtnSecondary>
-            <BtnPrimary onClick={handleSave} disabled={saving}>{saving ? "Enviando…" : "Enviar convite"}</BtnPrimary>
-          </ModalFooter>
-        )}
+        <ModalFooter>
+          <BtnSecondary onClick={handleClose}>Cancelar</BtnSecondary>
+          <BtnPrimary onClick={handleSave} disabled={saving}>{saving ? "Criando…" : "Criar membro"}</BtnPrimary>
+        </ModalFooter>
       </ModalBox>
     </Modal>
   );
 }
 
 // --- Modal: Editar Membro ---
-function EditarMembroModal({ open, onClose, member }: { open: boolean; onClose: () => void; member: TeamMember }) {
+function EditarMembroModal({ open, onClose, member, onUpdated }: { open: boolean; onClose: () => void; member: TeamMember; onUpdated: (member: TeamMember) => void }) {
   const [name, setName] = useState(member.name);
   const [email, setEmail] = useState(member.email);
   const [phone, setPhone] = useState(member.phone);
@@ -111,13 +140,42 @@ function EditarMembroModal({ open, onClose, member }: { open: boolean; onClose: 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronização intencional ao abrir o modal
+      setName(member.name);
+      setEmail(member.email);
+      setPhone(member.phone);
+      setSpecialty(member.specialty ?? "");
+      setCrefito(member.crefito ?? "");
+      setStatus(member.status);
+      setError("");
+    }
+  }, [open, member]);
+
   async function handleSave() {
+    if (!name.trim() || !email.trim() || !phone.trim()) { setError("Nome, e-mail e telefone são obrigatórios."); return; }
     setSaving(true); setError("");
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      const res = await fetch(`/api/team/${member.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          specialty: specialty.trim() || null,
+          crefito: crefito.trim() || null,
+          status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data?.error ?? "Erro ao salvar."); return; }
+      onUpdated(data.member);
       onClose();
     } catch {
-      setError("Erro ao salvar.");
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -158,15 +216,29 @@ function EditarMembroModal({ open, onClose, member }: { open: boolean; onClose: 
 }
 
 // --- Modal: Confirmar desativação ---
-function DesativarModal({ open, onClose, member }: { open: boolean; onClose: () => void; member: TeamMember }) {
+function DesativarModal({ open, onClose, member, onUpdated }: { open: boolean; onClose: () => void; member: TeamMember; onUpdated: (member: TeamMember) => void }) {
   const isAtivo = member.status === "ativo";
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleConfirm() {
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 700));
-    setSaving(false);
-    onClose();
+    setSaving(true); setError("");
+    try {
+      const res = await fetch(`/api/team/${member.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: isAtivo ? "inativo" : "ativo" }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data?.error ?? "Erro ao atualizar status."); return; }
+      onUpdated(data.member);
+      onClose();
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -179,6 +251,7 @@ function DesativarModal({ open, onClose, member }: { open: boolean; onClose: () 
               ? `Tem certeza que deseja desativar o acesso de ${member.name}? O membro não conseguirá mais entrar no sistema.`
               : `Deseja reativar o acesso de ${member.name}?`}
           </p>
+          {error && <p className="text-[12px] text-[var(--color-terracotta-600)] mt-2">{error}</p>}
         </ModalBody>
         <ModalFooter>
           <BtnSecondary onClick={onClose}>Cancelar</BtnSecondary>
@@ -195,12 +268,21 @@ export default function EquipePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<TeamMember | null>(null);
-  const [showConvidar, setShowConvidar] = useState(false);
+  const [showCriar, setShowCriar] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
   const [showDesativar, setShowDesativar] = useState(false);
 
   const userName = currentUser?.name ?? "";
   const userRole = currentUser?.role === "secretaria" ? "Secretária" : "Fisioterapeuta";
+
+  function handleMemberCreated(member: TeamMember) {
+    setTeam((prev) => [...prev, member].sort((a, b) => a.name.localeCompare(b.name)));
+  }
+
+  function handleMemberUpdated(member: TeamMember) {
+    setTeam((prev) => prev.map((m) => (m.id === member.id ? member : m)));
+    setSelected(member);
+  }
 
   useEffect(() => {
     let active = true;
@@ -243,8 +325,8 @@ export default function EquipePage() {
             <h1 className="font-display text-[22px] sm:text-[24px] md:text-[26px] font-medium text-[var(--color-pine-700)]">Equipe</h1>
             <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-0.5">{team.filter((m) => m.status === "ativo").length} ativos · {team.length} no total</p>
           </div>
-          <button onClick={() => setShowConvidar(true)} className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors">
-            + Convidar membro
+          <button onClick={() => setShowCriar(true)} className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors">
+            + Criar membro
           </button>
         </div>
 
@@ -282,9 +364,9 @@ export default function EquipePage() {
         )}
       </main>
 
-      <ConvidarModal open={showConvidar} onClose={() => setShowConvidar(false)} />
-      {selected && <EditarMembroModal open={showEditar} onClose={() => setShowEditar(false)} member={selected} />}
-      {selected && <DesativarModal open={showDesativar} onClose={() => setShowDesativar(false)} member={selected} />}
+      <CriarMembroModal open={showCriar} onClose={() => setShowCriar(false)} onCreated={handleMemberCreated} />
+      {selected && <EditarMembroModal open={showEditar} onClose={() => setShowEditar(false)} member={selected} onUpdated={handleMemberUpdated} />}
+      {selected && <DesativarModal open={showDesativar} onClose={() => setShowDesativar(false)} member={selected} onUpdated={handleMemberUpdated} />}
     </div>
   );
 }

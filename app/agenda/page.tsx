@@ -226,23 +226,28 @@ export default function AgendaPage() {
                 </div>
                 {days.map((day, dayIndex) => {
                   const iso = day.iso;
-                  const appt = appointments.find((a) => a.date === iso && a.time === hour);
+                  const slotAppts = appointments.filter((a) => a.date === iso && a.time === hour);
+                  // Se houver mais de um agendamento no mesmo horário (ex: um cancelado e um novo
+                  // remarcado no lugar), prioriza mostrar o que não está cancelado.
+                  const appt = slotAppts.find((a) => a.status !== "cancelado") ?? slotAppts[0];
                   const isOccupied = appointments.some(
                     (a) =>
                       a.date === iso &&
+                      a.status !== "cancelado" &&
                       hoursList.indexOf(a.time) < hoursList.indexOf(hour) &&
                       hoursList.indexOf(a.time) + a.durationSlots > hoursList.indexOf(hour)
                   );
                   const isSelected = selectedSlot?.date === iso && selectedSlot?.time === hour;
+                  const isBlocking = !!appt && appt.status !== "cancelado";
 
                   return (
                     <div
                       key={dayIndex}
-                      onClick={() => { if (!appt && !isOccupied) handleSlotClick(dayIndex, hour); }}
+                      onClick={() => { if (!isBlocking && !isOccupied) handleSlotClick(dayIndex, hour); }}
                       className={`border-b border-l border-[var(--color-line)] p-1.5 min-h-[60px] ${
                         dayIndex === todayIndex ? "bg-[var(--color-pine-50)]/40" : ""
                       } ${
-                        !appt && !isOccupied ? "cursor-pointer hover:bg-[var(--color-pine-50)]/60 transition-colors" : ""
+                        !isBlocking && !isOccupied ? "cursor-pointer hover:bg-[var(--color-pine-50)]/60 transition-colors" : ""
                       } ${
                         isSelected ? "ring-2 ring-inset ring-[var(--color-pine-600)] bg-[var(--color-pine-50)]" : ""
                       }`}
@@ -276,18 +281,21 @@ export default function AgendaPage() {
                   <p className="text-[13px] text-[var(--color-ink-soft)] py-4 text-center">Nenhum agendamento</p>
                 ) : (
                   group.appts.map((appt) => (
-                    <div key={appt.id} className="flex items-start gap-3 py-2 border-b border-[var(--color-line)] last:border-0">
+                    <div key={appt.id} className={`flex items-start gap-3 py-2 border-b border-[var(--color-line)] last:border-0 ${appt.status === "cancelado" ? "opacity-50" : ""}`}>
                       <span className="text-[12px] font-medium w-12 shrink-0 text-right text-[var(--color-ink-soft)]">
                         {appt.time}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium truncate">{appt.patient}</p>
+                        <p className={`text-[13px] font-medium truncate ${appt.status === "cancelado" ? "line-through" : ""}`}>{appt.patient}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className={`w-2 h-2 rounded-full ${legendDot[appt.category]}`} />
                           <span className="text-[11px] text-[var(--color-ink-soft)]">{categoryLabels[appt.category]}</span>
                         </div>
                         {appt.status === "pendente" && (
                           <span className="inline-block mt-1 text-[10px] font-medium text-[var(--color-terracotta-600)]">Pendente</span>
+                        )}
+                        {appt.status === "cancelado" && (
+                          <span className="inline-block mt-1 text-[10px] font-medium text-[var(--color-terracotta-600)]">Cancelado</span>
                         )}
                       </div>
                     </div>

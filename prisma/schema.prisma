@@ -26,6 +26,7 @@ enum AppointmentStatus {
   confirmado
   pendente
   rejeitado
+  cancelado
 }
 
 enum PatientStatus {
@@ -119,6 +120,7 @@ model Appointment {
   category      AppointmentCategory
   note          String?
   status        AppointmentStatus   @default(confirmado)
+  cancelReason  String? // motivo do cancelamento, preenchido quando status = cancelado
   historyEntry  AppointmentHistoryEntry?
 
   createdAt DateTime @default(now())

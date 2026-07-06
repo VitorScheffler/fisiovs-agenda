@@ -5,7 +5,7 @@ export type AppointmentCategory =
   | "pilates"
   | "bloqueado";
 
-export type AppointmentStatus = "confirmado" | "pendente" | "rejeitado";
+export type AppointmentStatus = "confirmado" | "pendente" | "rejeitado" | "cancelado";
 
 export type Appointment = {
   id: string;
@@ -17,6 +17,7 @@ export type Appointment = {
   category: AppointmentCategory;
   note?: string | null;
   status?: AppointmentStatus;
+  cancelReason?: string | null; // motivo do cancelamento, preenchido quando status = "cancelado"
   // Preenchido quando o atendimento já foi finalizado (registrado) para este agendamento.
   historyEntry?: Pick<
     AppointmentHistoryEntry,

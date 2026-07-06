@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { categoryLabels, AppointmentCategory } from "@/lib/types";
 import { generateAgendaHours, DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 import { fromISODate } from "@/lib/date-utils";
-import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "./Modal";
+import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, TextArea, SelectInput, BtnPrimary, BtnSecondary } from "./Modal";
 import { AtendimentoModal } from "./AtendimentoModal";
 
 const categoryStyles: Record<string, string> = {
@@ -26,10 +26,19 @@ function formatDateLabel(iso: string): string {
 }
 
 export function AppointmentModal() {
-  const { modal, closeModal, approveAppointment, rejectAppointment, addAppointment, patients, agendaConfig, openAtendimento } = useApp();
+  const { modal, closeModal, approveAppointment, rejectAppointment, cancelAppointment, addAppointment, patients, agendaConfig, openAtendimento } = useApp();
   const hours = generateAgendaHours(agendaConfig ?? DEFAULT_AGENDA_CONFIG);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset intencional ao trocar de agendamento
+    setShowCancelForm(false);
+    setCancelReason("");
+    setError("");
+  }, [modal]);
 
   const [formPatient, setFormPatient] = useState("");
   const [formCategory, setFormCategory] = useState<AppointmentCategory>("avaliacao");
@@ -141,14 +150,24 @@ export function AppointmentModal() {
 
   const { appointment: appt } = modal;
   const isPending = appt.status === "pendente";
+  const isCancelled = appt.status === "cancelado";
   const dateLabel = formatDateLabel(appt.date);
   const isFinalized = !!appt.historyEntry;
-  const canFinalize = !isPending && !!appt.patientId;
+  const canFinalize = !isPending && !isCancelled && !!appt.patientId;
+  const canCancel = !isPending && !isCancelled && !isFinalized;
 
   async function handleApprove() {
     setSubmitting(true); setError("");
     try { await approveAppointment(appt.id); }
     catch (err) { setError(err instanceof Error ? err.message : "Erro ao aprovar."); }
+    finally { setSubmitting(false); }
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancelReason.trim()) { setError("Informe o motivo do cancelamento."); return; }
+    setSubmitting(true); setError("");
+    try { await cancelAppointment(appt.id, cancelReason.trim()); }
+    catch (err) { setError(err instanceof Error ? err.message : "Erro ao cancelar."); }
     finally { setSubmitting(false); }
   }
 
@@ -196,16 +215,19 @@ export function AppointmentModal() {
               </p>
               <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">Solicitado pela secretária. Confirme ou recuse.</p>
             </div>
-          ) : (
-            <div className="rounded-[10px] bg-[var(--color-pine-50)] border border-[var(--color-pine-200)] px-4 py-3">
-              <p className="text-[12px] font-medium text-[var(--color-pine-700)] flex items-center gap-1.5">
+          ) : isCancelled ? (
+            <div className="rounded-[10px] bg-[var(--color-terracotta-100)] border border-[var(--color-terracotta-400)] px-4 py-3">
+              <p className="text-[12px] font-medium text-[var(--color-terracotta-600)] flex items-center gap-1.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
+                  <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
-                Confirmado
+                Cancelado
               </p>
+              {appt.cancelReason && (
+                <p className="text-[12px] text-[var(--color-ink-soft)] mt-1">Motivo: {appt.cancelReason}</p>
+              )}
             </div>
-          )}
+          ) : null}
 
           {isFinalized && (
             <div className="rounded-[10px] bg-[var(--color-pine-50)] border border-[var(--color-pine-200)] px-4 py-3">
@@ -221,10 +243,16 @@ export function AppointmentModal() {
             </div>
           )}
 
-          {!canFinalize && !isPending && !appt.patientId && (
+          {!canFinalize && !isPending && !isCancelled && !appt.patientId && (
             <p className="text-[11px] text-[var(--color-ink-soft)]">
               Vincule este agendamento a um paciente cadastrado para poder finalizar o atendimento.
             </p>
+          )}
+
+          {showCancelForm && (
+            <FieldGroup label="Motivo do cancelamento *">
+              <TextArea value={cancelReason} onChange={setCancelReason} placeholder="Ex: Paciente remarcou, imprevisto da clínica…" rows={3} />
+            </FieldGroup>
           )}
 
           {error && <p className="text-[12px] text-[var(--color-terracotta-600)]">{error}</p>}
@@ -236,9 +264,19 @@ export function AppointmentModal() {
                 {submitting ? "Aguarde…" : "Aprovar"}
               </BtnPrimary>
             </div>
-          ) : (
+          ) : showCancelForm ? (
             <div className="flex gap-2 mt-1">
+              <BtnSecondary onClick={() => { setShowCancelForm(false); setCancelReason(""); setError(""); }}>Voltar</BtnSecondary>
+              <BtnPrimary onClick={handleConfirmCancel} disabled={submitting}>
+                {submitting ? "Cancelando…" : "Confirmar cancelamento"}
+              </BtnPrimary>
+            </div>
+          ) : (
+            <div className="flex gap-2 mt-1 flex-wrap">
               <BtnSecondary onClick={closeModal}>Fechar</BtnSecondary>
+              {canCancel && (
+                <BtnSecondary onClick={() => setShowCancelForm(true)}>Cancelar atendimento</BtnSecondary>
+              )}
               {canFinalize && (
                 <BtnPrimary onClick={() => openAtendimento(appt)}>
                   {isFinalized ? "Editar atendimento" : "Finalizar atendimento"}

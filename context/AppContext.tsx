@@ -26,6 +26,7 @@ interface AppContextValue {
 
   approveAppointment: (id: string) => Promise<void>;
   rejectAppointment: (id: string) => Promise<void>;
+  cancelAppointment: (id: string, reason: string) => Promise<void>;
   addAppointment: (a: Omit<Appointment, "id">) => Promise<void>;
 
   patients: Patient[];
@@ -196,6 +197,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setModal(null);
   }, []);
 
+  const cancelAppointment = useCallback(async (id: string, reason: string) => {
+    const data = await apiFetch<{ appointment: Appointment }>(
+      `/api/appointments/${id}/cancel`,
+      { method: "POST", body: JSON.stringify({ reason }) }
+    );
+    setAppointments((prev) => prev.map((a) => (a.id === id ? data.appointment : a)));
+    setModal(null);
+  }, []);
+
   const addAppointment = useCallback(async (a: Omit<Appointment, "id">) => {
     const { patient, ...rest } = a;
     const data = await apiFetch<{ appointment: Appointment }>("/api/appointments", {
@@ -251,6 +261,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         closeModal,
         approveAppointment,
         rejectAppointment,
+        cancelAppointment,
         addAppointment,
         patients,
         patientsLoading,

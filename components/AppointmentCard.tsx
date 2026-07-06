@@ -14,15 +14,18 @@ const categoryStyles: Record<Appointment["category"], string> = {
 export function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const { openAppointment } = useApp();
   const isPending = appointment.status === "pendente";
+  const isCancelled = appointment.status === "cancelado";
 
   return (
     <button
       onClick={() => openAppointment(appointment)}
       className={`group h-full w-full text-left rounded-[10px] px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
         categoryStyles[appointment.category]
-      } ${isPending ? "border border-dashed border-[var(--color-terracotta-600)]" : ""}`}
+      } ${isPending ? "border border-dashed border-[var(--color-terracotta-600)]" : ""} ${
+        isCancelled ? "opacity-50 grayscale" : ""
+      }`}
     >
-      <span className="text-[12.5px] font-medium leading-tight truncate">
+      <span className={`text-[12.5px] font-medium leading-tight truncate ${isCancelled ? "line-through" : ""}`}>
         {appointment.patient}
       </span>
       <span className="text-[11px] opacity-80 leading-tight truncate">
@@ -32,6 +35,12 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
         <span className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--color-terracotta-600)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-terracotta-600)]" />
           Aguarda aprovação
+        </span>
+      ) : null}
+      {isCancelled ? (
+        <span className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--color-terracotta-600)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-terracotta-600)]" />
+          Cancelado
         </span>
       ) : null}
     </button>

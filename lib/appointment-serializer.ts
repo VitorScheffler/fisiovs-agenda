@@ -16,6 +16,7 @@ export function serializeAppointment(appt: AppointmentWithHistory): Appointment 
     category: appt.category,
     note: appt.note,
     status: appt.status,
+    cancelReason: appt.cancelReason,
     historyEntry: appt.historyEntry
       ? {
           complaint: appt.historyEntry.complaint,

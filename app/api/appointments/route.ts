@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   const appointmentDate = new Date(data.date);
 
   const sameDayAppointments = await prisma.appointment.findMany({
-    where: { date: appointmentDate, status: { not: "rejeitado" } },
+    where: { date: appointmentDate, status: { notIn: ["rejeitado", "cancelado"] } },
   });
 
   const settings = await prisma.clinicSettings.upsert({
