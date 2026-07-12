@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const closeModal = useCallback(() => setModal(null), []);
 
   const approveAppointment = useCallback(async (id: string) => {
-    const data = await apiFetch<{ appointment: Appointment }>(
+    await apiFetch<{ appointment: Appointment }>(
       `/api/appointments/${id}/approve`,
       { method: "POST" }
     );
@@ -188,7 +188,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((a) => (a.id === id ? { ...a, status: "confirmado" as AppointmentStatus } : a))
     );
     setModal(null);
-    return data;
   }, []);
 
   const rejectAppointment = useCallback(async (id: string) => {
