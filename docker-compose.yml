@@ -1,0 +1,18 @@
+services:
+  fisiovs-agenda:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fisiovs-agenda:latest
+    container_name: fisiovs-agenda
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      # Persiste o arquivo SQLite fora do container, entre rebuilds/updates.
+      - fisiovs_data:/data
+    ports:
+      - "3000:3000"
+
+volumes:
+  fisiovs_data:
