@@ -41,17 +41,24 @@ function minutesToTime(minutes: number): string {
 
 /**
  * Gera a lista de horários (HH:mm) usados como linhas/opções da agenda,
- * em passos de 1 hora, começando exatamente no horário de início configurado
- * até (exclusive) o horário de fim. "00:00" como fim representa meia-noite
- * (ou seja, o atendimento vai até o fim do dia).
+ * em passos do intervalo configurado (ex: 15 minutos → 08:00, 08:15, 08:30...),
+ * começando exatamente no horário de início configurado até (exclusive) o
+ * horário de fim. "00:00" como fim representa meia-noite (ou seja, o
+ * atendimento vai até o fim do dia).
  */
-export function generateAgendaHours(config: Pick<AgendaConfig, "horarioInicio" | "horarioFim">): string[] {
+export function generateAgendaHours(
+  config: Pick<AgendaConfig, "horarioInicio" | "horarioFim" | "intervaloConsulta">
+): string[] {
   const startMinutes = timeToMinutes(config.horarioInicio);
   let endMinutes = timeToMinutes(config.horarioFim);
   if (endMinutes <= startMinutes) endMinutes += 24 * 60; // cobre "00:00" (meia-noite) e virada de dia
 
+  // Passo em minutos entre cada horário selecionável. Cai para 60min se o
+  // intervalo configurado for 0 ou inválido, evitando loop infinito/vazio.
+  const step = config.intervaloConsulta > 0 ? config.intervaloConsulta : 60;
+
   const result: string[] = [];
-  for (let m = startMinutes; m < endMinutes; m += 60) {
+  for (let m = startMinutes; m < endMinutes; m += step) {
     result.push(minutesToTime(m % (24 * 60)));
   }
   return result.length > 0 ? result : [config.horarioInicio];
