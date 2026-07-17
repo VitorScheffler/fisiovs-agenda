@@ -16,8 +16,9 @@ async function main() {
   await prisma.patient.deleteMany();
   await prisma.clinicSettings.deleteMany();
 
-  console.log("Criando usuário TI...");
+    console.log("Criando usuários...");
 
+  // Vitor
   const vitorTeam = await prisma.teamMember.create({
     data: {
       name: "Vitor Scheffler",
@@ -36,15 +37,19 @@ async function main() {
       name: "Vitor Scheffler",
       email: "vitor.scheffler@hotmail.com",
       password: await hash("Vitor123@"),
-      role: "admin", // UserRole não possui "TI"; admin é o papel de login equivalente para acesso total ao painel
-      teamMember: { connect: { id: vitorTeam.id } },
+      role: "admin",
+      teamMember: {
+        connect: {
+          id: vitorTeam.id,
+        },
+      },
     },
   });
 
   console.log("Seed concluído com sucesso!");
   console.log("");
-  console.log("Usuário de login:");
-  console.log("  TI (login como admin): vitor.scheffler@hotmail.com / Vitor123@");
+  console.log("Usuários de login:");
+  console.log("  Admin: vitor.scheffler@hotmail.com / Vitor123@");
 }
 
 main()

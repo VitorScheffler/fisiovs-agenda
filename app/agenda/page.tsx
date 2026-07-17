@@ -70,7 +70,7 @@ function groupAppointmentsByDay(appointments: Appointment[], days: PageDay[], ho
 }
 
 export default function AgendaPage() {
-  const { currentUser, appointments, appointmentsLoading, openNewSlot, agendaConfig } = useApp();
+  const { currentUser, appointments, appointmentsLoading, openNewSlot, openAppointment, agendaConfig } = useApp();
 
   const [pageOffset, setPageOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
@@ -190,6 +190,18 @@ export default function AgendaPage() {
           </button>
         </div>
 
+        <div className="lg:hidden flex items-center justify-center gap-1 rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] px-1 py-1 mb-4">
+          <button onClick={() => setPageOffset((w) => w - 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Período anterior">
+            ‹
+          </button>
+          <button onClick={() => setPageOffset(0)} className="flex-1 px-2 py-1.5 text-[13px] font-medium hover:text-[var(--color-pine-700)]">
+            {pageOffset === 0 ? "Hoje" : "Voltar para hoje"}
+          </button>
+          <button onClick={() => setPageOffset((w) => w + 1)} className="px-3 py-1.5 text-[13px] rounded-[8px] hover:bg-[var(--color-paper)]" aria-label="Próximo período">
+            ›
+          </button>
+        </div>
+
         {appointmentsLoading && (
           <p className="text-[13px] text-[var(--color-ink-soft)] mb-4">Carregando agenda…</p>
         )}
@@ -281,7 +293,11 @@ export default function AgendaPage() {
                   <p className="text-[13px] text-[var(--color-ink-soft)] py-4 text-center">Nenhum agendamento</p>
                 ) : (
                   group.appts.map((appt) => (
-                    <div key={appt.id} className={`flex items-start gap-3 py-2 border-b border-[var(--color-line)] last:border-0 ${appt.status === "cancelado" ? "opacity-50" : ""}`}>
+                    <button
+                      key={appt.id}
+                      onClick={() => openAppointment(appt)}
+                      className={`flex items-start gap-3 py-2 border-b border-[var(--color-line)] last:border-0 text-left w-full hover:bg-[var(--color-paper)] transition-colors rounded-[8px] px-1 -mx-1 ${appt.status === "cancelado" ? "opacity-50" : ""}`}
+                    >
                       <span className="text-[12px] font-medium w-12 shrink-0 text-right text-[var(--color-ink-soft)]">
                         {appt.time}
                       </span>
@@ -298,7 +314,7 @@ export default function AgendaPage() {
                           <span className="inline-block mt-1 text-[10px] font-medium text-[var(--color-terracotta-600)]">Cancelado</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
