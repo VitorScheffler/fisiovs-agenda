@@ -54,7 +54,13 @@ export async function setSessionCookie(payload: SessionPayload) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Cookie "secure" só é enviado pelo navegador em conexões HTTPS. Em
+    // produção isso deve ficar true (padrão), mas se você ainda estiver
+    // acessando via HTTP puro (sem reverse proxy/TLS na frente), defina
+    // COOKIE_SECURE=false no .env.production temporariamente — senão o
+    // navegador recebe o cookie no login e nunca reenvia, gerando 401 em
+    // todas as chamadas seguintes.
+    secure: process.env.COOKIE_SECURE !== "false",
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION,

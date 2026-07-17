@@ -11,8 +11,22 @@ services:
     volumes:
       # Persiste o arquivo SQLite fora do container, entre rebuilds/updates.
       - fisiovs_data:/data
+      # Persiste arquivos enviados pelo app (avatares, comprovantes) — sem
+      # isso, tudo em /app/public/uploads some a cada rebuild da imagem.
+      - fisiovs_uploads:/app/public/uploads
     ports:
       - "3000:3000"
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: fisiovs-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    env_file:
+      - .env.production
+    depends_on:
+      - fisiovs-agenda
+
 volumes:
   fisiovs_data:
+  fisiovs_uploads:
