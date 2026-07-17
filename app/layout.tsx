@@ -9,8 +9,8 @@ import { AppProvider } from "@/context/AppContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
-  title: "FisioVS | Agenda",
-  description: "Agenda de atendimentos FisioVS",
+  title: "FisioVS | Sistema",
+  description: "Sistema de atendimentos FisioVS",
 };
 
 const themeInitScript = `
