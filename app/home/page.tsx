@@ -45,7 +45,7 @@ export default function HomePage() {
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <div className="hidden lg:contents">
-        <Sidebar active="home" userName={userName} userRole={userRole} pendingCount={pendingRequests.length} />
+        <Sidebar active="home" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} pendingCount={pendingRequests.length} />
       </div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
@@ -62,7 +62,7 @@ export default function HomePage() {
             </svg>
           </label>
           <div className="h-full">
-            <Sidebar active="home" userName={userName} userRole={userRole} pendingCount={pendingRequests.length} />
+            <Sidebar active="home" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} pendingCount={pendingRequests.length} />
           </div>
         </div>
       </div>

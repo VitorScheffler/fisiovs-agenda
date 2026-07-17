@@ -8,6 +8,8 @@ import { calcAge } from "@/lib/patients";
 import { generateAgendaHours, DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
 import { toISODate, getToday } from "@/lib/date-utils";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
+import { Avatar } from "@/components/Avatar";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 const statusLabel: Record<PatientStatus, string> = { ativo: "Ativo", inativo: "Inativo", alta: "Alta" };
 const statusStyle: Record<PatientStatus, string> = {
@@ -104,14 +106,15 @@ function NovoPacienteModal({ open, onClose }: { open: boolean; onClose: () => vo
 }
 
 // --- Modal: Editar Ficha ---
-function EditarFichaModal({ open, onClose, patient }: { open: boolean; onClose: () => void; patient: Patient }) {
-  const { updatePatient } = useApp();
+function EditarFichaModal({ open, onClose, patient, onPatientChanged }: { open: boolean; onClose: () => void; patient: Patient; onPatientChanged: (patient: Patient) => void }) {
+  const { updatePatient, refreshPatients } = useApp();
   const [name, setName] = useState(patient.name);
   const [email, setEmail] = useState(patient.email);
   const [phone, setPhone] = useState(patient.phone);
   const [condition, setCondition] = useState(patient.condition ?? "");
   const [notes, setNotes] = useState(patient.notes ?? "");
   const [status, setStatus] = useState<PatientStatus>(patient.status);
+  const [avatar, setAvatar] = useState(patient.avatar ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -132,6 +135,16 @@ function EditarFichaModal({ open, onClose, patient }: { open: boolean; onClose: 
       <ModalBox className="max-w-md">
         <ModalHeader title="Editar ficha" subtitle={patient.name} onClose={onClose} />
         <ModalBody>
+          <AvatarUpload
+            uploadUrl={`/api/patients/${patient.id}/avatar`}
+            currentAvatar={avatar}
+            initials={patient.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+            onChanged={(newAvatar) => {
+              setAvatar(newAvatar);
+              onPatientChanged({ ...patient, avatar: newAvatar });
+              refreshPatients().catch(() => {});
+            }}
+          />
           <FieldGroup label="Nome"><TextInput value={name} onChange={setName} /></FieldGroup>
           <div className="grid grid-cols-2 gap-3">
             <FieldGroup label="E-mail"><TextInput value={email} onChange={setEmail} type="email" /></FieldGroup>
@@ -269,7 +282,7 @@ export default function PacientesPage() {
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <div className="hidden lg:contents">
-        <Sidebar active="pacientes" userName={userName} userRole={userRole} />
+        <Sidebar active="pacientes" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} />
       </div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
@@ -278,7 +291,7 @@ export default function PacientesPage() {
           <label htmlFor="menu-toggle" className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-[var(--color-card)] hover:bg-[var(--color-paper)] border border-[var(--color-line)] cursor-pointer" aria-label="Fechar menu">
             <CloseIcon />
           </label>
-          <div className="h-full"><Sidebar active="pacientes" userName={userName} userRole={userRole} /></div>
+          <div className="h-full"><Sidebar active="pacientes" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} /></div>
         </div>
       </div>
 
@@ -328,9 +341,12 @@ export default function PacientesPage() {
                 <button key={p.id} onClick={() => setSelected(isSelected ? null : p)} className={`text-left rounded-[12px] border px-4 py-3.5 transition-all ${isSelected ? "border-[var(--color-pine-400)] bg-[var(--color-pine-50)]" : "border-[var(--color-line)] bg-[var(--color-card)] hover:border-[var(--color-pine-200)]"}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[13px] font-medium shrink-0">
-                        {p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
-                      </div>
+                      <Avatar
+                        src={p.avatar}
+                        initials={p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                        size="w-9 h-9"
+                        className="text-[13px]"
+                      />
                       <div className="min-w-0">
                         <p className="text-[14px] font-medium truncate">{p.name}</p>
                         <p className="text-[12px] text-[var(--color-ink-soft)] truncate">{p.condition ?? p.email}</p>
@@ -365,7 +381,7 @@ export default function PacientesPage() {
       </main>
 
       <NovoPacienteModal open={showNovo} onClose={() => setShowNovo(false)} />
-      {selected && <EditarFichaModal open={showEditar} onClose={() => setShowEditar(false)} patient={selected} />}
+      {selected && <EditarFichaModal open={showEditar} onClose={() => setShowEditar(false)} patient={selected} onPatientChanged={setSelected} />}
       {selected && <AgendarConsultaModal open={showAgendar} onClose={() => setShowAgendar(false)} patient={selected} />}
     </div>
   );
@@ -378,9 +394,12 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
     <div className="flex flex-col h-full">
       <div className="px-4 sm:px-6 py-5 border-b border-[var(--color-line)] flex items-start justify-between gap-3 sticky top-0 bg-[var(--color-card)] z-10">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[15px] font-medium">
-            {p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
-          </div>
+          <Avatar
+            src={p.avatar}
+            initials={p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+            size="w-11 h-11"
+            className="text-[15px]"
+          />
           <div>
             <h2 className="font-display text-[18px] font-medium text-[var(--color-pine-700)]">{p.name}</h2>
             <p className="text-[12px] text-[var(--color-ink-soft)]">{age} anos · Desde {p.since}</p>

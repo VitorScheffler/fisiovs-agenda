@@ -15,5 +15,6 @@ export function serializeTeamMember(member: PrismaTeamMember): TeamMember {
     since: member.since,
     initials: member.initials,
     color: member.color,
+    avatar: member.avatar,
   };
 }

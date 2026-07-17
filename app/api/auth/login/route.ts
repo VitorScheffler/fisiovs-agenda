@@ -23,7 +23,13 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      teamMember: { select: { avatar: true } },
+      patient: { select: { avatar: true } },
+    },
+  });
   if (!user) {
     return jsonError("E-mail ou senha incorretos.", 401);
   }
@@ -48,7 +54,7 @@ export async function POST(request: Request) {
       role: user.role,
       specialty: user.specialty,
       crefito: user.crefito,
-      avatar: user.avatar,
+      avatar: user.avatar ?? user.teamMember?.avatar ?? user.patient?.avatar ?? null,
       patientId: user.patientId,
     },
   });

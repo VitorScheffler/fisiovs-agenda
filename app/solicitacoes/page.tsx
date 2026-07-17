@@ -46,7 +46,7 @@ export default function SolicitacoesPage() {
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <div className="hidden lg:contents">
-        <Sidebar active="solicitacoes" userName={userName} userRole={userRole} pendingCount={pending.length} />
+        <Sidebar active="solicitacoes" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} pendingCount={pending.length} />
       </div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
@@ -63,7 +63,7 @@ export default function SolicitacoesPage() {
             </svg>
           </label>
           <div className="h-full">
-            <Sidebar active="solicitacoes" userName={userName} userRole={userRole} pendingCount={pending.length} />
+            <Sidebar active="solicitacoes" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} pendingCount={pending.length} />
           </div>
         </div>
       </div>

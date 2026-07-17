@@ -115,7 +115,7 @@ export default function AgendaPage() {
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <div className="hidden lg:contents">
-        <Sidebar active="agenda" userName={userName} userRole={userRole} />
+        <Sidebar active="agenda" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} />
       </div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
@@ -129,7 +129,7 @@ export default function AgendaPage() {
             <CloseIcon />
           </label>
           <div className="h-full">
-            <Sidebar active="agenda" userName={userName} userRole={userRole} />
+            <Sidebar active="agenda" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} />
           </div>
         </div>
       </div>

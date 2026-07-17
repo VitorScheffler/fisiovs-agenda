@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "./Logo";
+import { Avatar } from "./Avatar";
 import { useApp } from "@/context/AppContext";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -67,11 +68,13 @@ export function Sidebar({
   active,
   userName,
   userRole,
+  userAvatar,
   pendingCount = 0,
 }: {
   active: "home" | "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config" | "sair";
   userName: string;
   userRole: "Fisioterapeuta" | "Secretária" | string;
+  userAvatar?: string | null;
   pendingCount?: number;
 }) {
   const router = useRouter();
@@ -164,9 +167,7 @@ export function Sidebar({
       </a>
 
       <div className="px-4 py-4 border-t border-[var(--color-line)] flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-[var(--color-pine-100)] text-[var(--color-pine-700)] flex items-center justify-center text-[12px] font-medium">
-          {initials}
-        </div>
+        <Avatar src={userAvatar} initials={initials} size="w-9 h-9" className="text-[12px]" />
         <div className="leading-tight flex-1 min-w-0">
           <p className="text-[13px] font-medium truncate">{userName}</p>
           <p className="text-[11px] text-[var(--color-ink-soft)]">{userRole}</p>

@@ -73,6 +73,7 @@ export type Patient = {
   condition?: string | null;
   since: string;
   notes?: string | null;
+  avatar?: string | null;
   appointmentHistory: AppointmentHistoryEntry[];
 };
 
@@ -92,6 +93,7 @@ export type TeamMember = {
   since: string;
   initials: string;
   color: string;
+  avatar?: string | null;
 };
 
 export type UserRole = "admin" | "fisioterapeuta" | "secretaria" | "paciente";

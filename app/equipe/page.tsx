@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { TeamMember } from "@/lib/types";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
+import { Avatar } from "@/components/Avatar";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 const statusLabel = { ativo: "Ativo", inativo: "Inativo", ferias: "Férias" } as const;
 const statusStyle = {
@@ -137,6 +139,7 @@ function EditarMembroModal({ open, onClose, member, onUpdated }: { open: boolean
   const [specialty, setSpecialty] = useState(member.specialty ?? "");
   const [crefito, setCrefito] = useState(member.crefito ?? "");
   const [status, setStatus] = useState(member.status);
+  const [avatar, setAvatar] = useState(member.avatar ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -149,6 +152,7 @@ function EditarMembroModal({ open, onClose, member, onUpdated }: { open: boolean
       setSpecialty(member.specialty ?? "");
       setCrefito(member.crefito ?? "");
       setStatus(member.status);
+      setAvatar(member.avatar ?? null);
       setError("");
     }
   }, [open, member]);
@@ -186,6 +190,16 @@ function EditarMembroModal({ open, onClose, member, onUpdated }: { open: boolean
       <ModalBox className="max-w-md">
         <ModalHeader title="Editar dados" subtitle={member.name} onClose={onClose} />
         <ModalBody>
+          <AvatarUpload
+            uploadUrl={`/api/team/${member.id}/avatar`}
+            currentAvatar={avatar}
+            initials={member.initials}
+            color={member.color}
+            onChanged={(newAvatar) => {
+              setAvatar(newAvatar);
+              onUpdated({ ...member, avatar: newAvatar });
+            }}
+          />
           <FieldGroup label="Nome"><TextInput value={name} onChange={setName} /></FieldGroup>
           <div className="grid grid-cols-2 gap-3">
             <FieldGroup label="E-mail"><TextInput value={email} onChange={setEmail} type="email" /></FieldGroup>
@@ -307,13 +321,13 @@ export default function EquipePage() {
   return (
     <div className="flex min-h-screen bg-[var(--color-paper)] relative">
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
-      <div className="hidden lg:contents"><Sidebar active="equipe" userName={userName} userRole={userRole} /></div>
+      <div className="hidden lg:contents"><Sidebar active="equipe" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} /></div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
         <label htmlFor="menu-toggle" className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
         <div className="absolute left-0 top-0 bottom-0 w-64 bg-[var(--color-card)] shadow-xl animate-slide-in-left">
           <label htmlFor="menu-toggle" className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-[var(--color-card)] hover:bg-[var(--color-paper)] border border-[var(--color-line)] cursor-pointer" aria-label="Fechar menu"><CloseIcon /></label>
-          <div className="h-full"><Sidebar active="equipe" userName={userName} userRole={userRole} /></div>
+          <div className="h-full"><Sidebar active="equipe" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} /></div>
         </div>
       </div>
 
@@ -375,7 +389,7 @@ function MemberCard({ member: m, selected, onClick }: { member: TeamMember; sele
   return (
     <button onClick={onClick} className={`text-left rounded-[12px] border px-5 py-4 transition-all ${selected ? "border-[var(--color-pine-400)] bg-[var(--color-pine-50)]" : "border-[var(--color-line)] bg-[var(--color-card)] hover:border-[var(--color-pine-200)]"}`}>
       <div className="flex items-center gap-4">
-        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-medium shrink-0 ${m.color}`}>{m.initials}</div>
+        <Avatar src={m.avatar} initials={m.initials} color={m.color} size="w-11 h-11" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-medium">{m.name}</p>
@@ -402,7 +416,7 @@ function MemberPanel({ member: m, onClose, onEditar, onDesativar }: { member: Te
       <div className={`px-5 py-5 ${m.color}`}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center text-[16px] font-medium">{m.initials}</div>
+            <Avatar src={m.avatar} initials={m.initials} size="w-12 h-12" className="bg-white/30" />
             <div>
               <p className="font-display text-[16px] font-medium">{m.name}</p>
               <p className="text-[12px] opacity-70 mt-0.5">{m.role}</p>

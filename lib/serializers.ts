@@ -22,6 +22,7 @@ export function serializePatient(patient: PatientWithHistory): Patient {
     condition: patient.condition,
     since: patient.since,
     notes: patient.notes,
+    avatar: patient.avatar,
     appointmentHistory: patient.appointmentHistory.map((h) => ({
       id: h.id,
       appointmentId: h.appointmentId,

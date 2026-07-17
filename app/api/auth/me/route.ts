@@ -19,6 +19,8 @@ export async function GET() {
       crefito: true,
       avatar: true,
       patientId: true,
+      teamMember: { select: { avatar: true } },
+      patient: { select: { avatar: true } },
     },
   });
 
@@ -26,5 +28,8 @@ export async function GET() {
     return jsonError("Usuário não encontrado.", 404);
   }
 
-  return jsonOk({ user });
+  const { teamMember, patient, ...rest } = user;
+  return jsonOk({
+    user: { ...rest, avatar: user.avatar ?? teamMember?.avatar ?? patient?.avatar ?? null },
+  });
 }

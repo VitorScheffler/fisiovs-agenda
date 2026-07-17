@@ -81,6 +81,7 @@ model Patient {
   condition String?
   since     String
   notes     String?
+  avatar    String?
 
   user                User?
   appointments        Appointment[]
@@ -104,6 +105,7 @@ model TeamMember {
   since     String
   initials  String
   color     String
+  avatar    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

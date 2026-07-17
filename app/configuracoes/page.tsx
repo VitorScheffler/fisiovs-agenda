@@ -411,13 +411,13 @@ export default function ConfiguracoesPage() {
   return (
     <div className="flex min-h-screen bg-[var(--color-paper)] relative">
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
-      <div className="hidden lg:contents"><Sidebar active="config" userName={userName} userRole={userRole} /></div>
+      <div className="hidden lg:contents"><Sidebar active="config" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} /></div>
 
       <div className="fixed inset-0 z-50 hidden peer-checked:block lg:hidden">
         <label htmlFor="menu-toggle" className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
         <div className="absolute left-0 top-0 bottom-0 w-64 bg-[var(--color-card)] shadow-xl animate-slide-in-left">
           <label htmlFor="menu-toggle" className="absolute top-4 right-4 z-20 p-2 rounded-lg bg-[var(--color-card)] hover:bg-[var(--color-paper)] border border-[var(--color-line)] cursor-pointer" aria-label="Fechar menu"><CloseIcon /></label>
-          <div className="h-full"><Sidebar active="config" userName={userName} userRole={userRole} /></div>
+          <div className="h-full"><Sidebar active="config" userName={userName} userRole={userRole} userAvatar={currentUser?.avatar} /></div>
         </div>
       </div>
 
