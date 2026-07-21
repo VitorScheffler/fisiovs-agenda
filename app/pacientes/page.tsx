@@ -17,6 +17,11 @@ const statusStyle: Record<PatientStatus, string> = {
   inativo: "bg-[var(--color-cat-bloqueado-bg)] text-[var(--color-ink-soft)]",
   alta: "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]",
 };
+const appointmentStyle = {
+  default:
+    "bg-[var(--color-pine-50)] text-[var(--color-pine-700)] border border-[var(--color-pine-200)]",
+};
+
 const catDot: Record<string, string> = {
   avaliacao: "bg-[var(--color-cat-avaliacao-fg)]",
   retorno: "bg-[var(--color-cat-retorno-fg)]",
@@ -274,11 +279,20 @@ export default function PacientesPage() {
   });
 
   function countWeekAppts(patientName: string) {
-    return appointments.filter((a) => a.patient === patientName && a.status !== "cancelado").length;
+    const now = new Date();
+
+    return appointments.filter((a) => {
+      if (a.patient !== patientName) return false;
+      if (a.status === "cancelado") return false;
+
+      const appointmentDate = new Date(`${a.date}T${a.time}`);
+
+      return appointmentDate >= now;
+    }).length;
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-paper)] relative">
+    <div className="flex min-h-screen bg-[var(--color-paper)] relative overflow-x-hidden">
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <div className="hidden lg:contents">
@@ -296,34 +310,44 @@ export default function PacientesPage() {
       </div>
 
       <main className="flex-1 min-w-0 flex">
-        <div className={`flex flex-col transition-all duration-200 ${selected ? "hidden lg:flex lg:w-[420px] lg:shrink-0" : "flex-1"}`}>
+        <div className={`flex flex-col min-w-0 transition-all duration-200 ${selected ? "hidden lg:flex lg:w-[420px] lg:shrink-0" : "flex-1"}`}>
           <div className="px-4 sm:px-6 md:px-8 py-5 md:py-6 border-b border-[var(--color-line)] bg-[var(--color-paper)] sticky top-0 z-10">
             <div className="flex items-center gap-3 mb-4">
               <label htmlFor="menu-toggle" className="lg:hidden inline-flex p-2 rounded-lg hover:bg-[var(--color-card)] border border-[var(--color-line)] cursor-pointer z-30" aria-label="Abrir menu">
                 <MenuIcon />
               </label>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h1 className="font-display text-[22px] sm:text-[24px] md:text-[26px] font-medium text-[var(--color-pine-700)]">Pacientes</h1>
                 <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-0.5">{patients.length} cadastrados</p>
               </div>
               <button
                 onClick={() => setShowNovo(true)}
-                className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors hidden sm:block"
+                className="rounded-[10px] bg-[var(--color-pine-600)] text-white text-[13px] font-medium px-4 py-2.5 hover:bg-[var(--color-pine-700)] transition-colors hidden sm:block shrink-0"
               >
                 + Novo paciente
+              </button>
+              {/* Botão compacto para mobile, já que o texto some abaixo de sm */}
+              <button
+                onClick={() => setShowNovo(true)}
+                aria-label="Novo paciente"
+                className="rounded-[10px] bg-[var(--color-pine-600)] text-white p-2.5 hover:bg-[var(--color-pine-700)] transition-colors sm:hidden shrink-0"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-w-0">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-soft)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
                 <input type="text" placeholder="Buscar por nome ou e-mail…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] pl-9 pr-3.5 py-2 text-[13px] outline-none focus:border-[var(--color-pine-400)] focus:ring-2 focus:ring-[var(--color-pine-100)]" />
               </div>
-              <div className="flex rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-hidden self-start">
+              <div className="flex rounded-[10px] border border-[var(--color-line)] bg-[var(--color-card)] overflow-x-auto self-start max-w-full">
                 {(["todos", "ativo", "inativo", "alta"] as const).map((s) => (
-                  <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-2 text-[12px] font-medium transition-colors capitalize ${filterStatus === s ? "bg-[var(--color-pine-600)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"}`}>
+                  <button key={s} onClick={() => setFilterStatus(s)} className={`px-3 py-2 text-[12px] font-medium transition-colors capitalize whitespace-nowrap ${filterStatus === s ? "bg-[var(--color-pine-600)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper)]"}`}>
                     {s === "todos" ? "Todos" : statusLabel[s]}
                   </button>
                 ))}
@@ -331,15 +355,15 @@ export default function PacientesPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 flex flex-col gap-2">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 md:px-8 py-4 flex flex-col gap-2">
             {patientsLoading && <p className="text-[13px] text-[var(--color-ink-soft)] text-center py-12">Carregando pacientes…</p>}
             {!patientsLoading && filtered.length === 0 && <p className="text-[13px] text-[var(--color-ink-soft)] text-center py-12">Nenhum paciente encontrado.</p>}
             {filtered.map((p) => {
               const isSelected = selected?.id === p.id;
               const weekAppts = countWeekAppts(p.name);
               return (
-                <button key={p.id} onClick={() => setSelected(isSelected ? null : p)} className={`text-left rounded-[12px] border px-4 py-3.5 transition-all ${isSelected ? "border-[var(--color-pine-400)] bg-[var(--color-pine-50)]" : "border-[var(--color-line)] bg-[var(--color-card)] hover:border-[var(--color-pine-200)]"}`}>
-                  <div className="flex items-center justify-between gap-3">
+                <button key={p.id} onClick={() => setSelected(isSelected ? null : p)} className={`text-left rounded-[12px] border px-4 py-3.5 transition-all min-w-0 ${isSelected ? "border-[var(--color-pine-400)] bg-[var(--color-pine-50)]" : "border-[var(--color-line)] bg-[var(--color-card)] hover:border-[var(--color-pine-200)]"}`}>
+                  <div className="flex items-start justify-between gap-3 min-w-0 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar
                         src={p.avatar}
@@ -352,15 +376,24 @@ export default function PacientesPage() {
                         <p className="text-[12px] text-[var(--color-ink-soft)] truncate">{p.condition ?? p.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {weekAppts > 0 && <span className="text-[11px] font-medium rounded-full px-2 py-0.5 bg-[var(--color-pine-50)] text-[var(--color-pine-700)] border border-[var(--color-pine-200)]">{weekAppts} esta semana</span>}
-                      <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${statusStyle[p.status]}`}>{statusLabel[p.status]}</span>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      <span
+                        className={`text-[11px] font-medium rounded-full px-2 py-0.5 whitespace-nowrap ${appointmentStyle.default}`}
+                      >
+                        {weekAppts} {weekAppts === 1 ? "atendimento marcado" : "atendimentos marcados"}
+                      </span>
+
+                      <span
+                        className={`text-[11px] font-medium rounded-full px-2 py-0.5 whitespace-nowrap ${statusStyle[p.status]}`}
+                      >
+                        {statusLabel[p.status]}
+                      </span>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-4 mt-2.5 pl-12 ${selected ? "hidden" : ""}`}>
-                    <span className="text-[12px] text-[var(--color-ink-soft)]">{calcAge(p.birthDate)} anos</span>
-                    <span className="text-[12px] text-[var(--color-ink-soft)]">{p.phone}</span>
-                    <span className="text-[12px] text-[var(--color-ink-soft)]">Desde {p.since}</span>
+                  <div className={`flex items-center gap-4 mt-2.5 pl-0 sm:pl-12 flex-wrap gap-y-1 ${selected ? "hidden" : ""}`}>
+                    <span className="text-[12px] text-[var(--color-ink-soft)] whitespace-nowrap">{calcAge(p.birthDate)} anos</span>
+                    <span className="text-[12px] text-[var(--color-ink-soft)] whitespace-nowrap">{p.phone}</span>
+                    <span className="text-[12px] text-[var(--color-ink-soft)] whitespace-nowrap">Desde {p.since}</span>
                   </div>
                 </button>
               );
@@ -369,7 +402,7 @@ export default function PacientesPage() {
         </div>
 
         {selected && (
-          <div className="flex-1 border-l border-[var(--color-line)] bg-[var(--color-card)] overflow-y-auto">
+          <div className="flex-1 min-w-0 border-l border-[var(--color-line)] bg-[var(--color-card)] overflow-y-auto overflow-x-hidden">
             <PatientSheet
               patient={selected}
               onClose={() => setSelected(null)}
@@ -391,31 +424,31 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
   const age = calcAge(p.birthDate);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0">
       <div className="px-4 sm:px-6 py-5 border-b border-[var(--color-line)] flex items-start justify-between gap-3 sticky top-0 bg-[var(--color-card)] z-10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Avatar
             src={p.avatar}
             initials={p.name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
             size="w-11 h-11"
-            className="text-[15px]"
+            className="text-[15px] shrink-0"
           />
-          <div>
-            <h2 className="font-display text-[18px] font-medium text-[var(--color-pine-700)]">{p.name}</h2>
-            <p className="text-[12px] text-[var(--color-ink-soft)]">{age} anos · Desde {p.since}</p>
+          <div className="min-w-0">
+            <h2 className="font-display text-[18px] font-medium text-[var(--color-pine-700)] truncate">{p.name}</h2>
+            <p className="text-[12px] text-[var(--color-ink-soft)] whitespace-nowrap truncate">{age} anos · Desde {p.since}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-[11px] font-medium rounded-full px-2.5 py-1 ${{ ativo: "bg-[var(--color-pine-50)] text-[var(--color-pine-700)]", inativo: "bg-[var(--color-cat-bloqueado-bg)] text-[var(--color-ink-soft)]", alta: "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]" }[p.status]}`}>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[11px] font-medium rounded-full px-2.5 py-1 whitespace-nowrap ${{ ativo: "bg-[var(--color-pine-50)] text-[var(--color-pine-700)]", inativo: "bg-[var(--color-cat-bloqueado-bg)] text-[var(--color-ink-soft)]", alta: "bg-[var(--color-terracotta-100)] text-[var(--color-terracotta-600)]" }[p.status]}`}>
             {{ ativo: "Ativo", inativo: "Inativo", alta: "Alta" }[p.status]}
           </span>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--color-paper)] transition-colors text-[var(--color-ink-soft)]">
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--color-paper)] transition-colors text-[var(--color-ink-soft)] shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 px-4 sm:px-6 py-5 flex flex-col gap-5">
+      <div className="flex-1 px-4 sm:px-6 py-5 flex flex-col gap-5 min-w-0">
         {p.condition && <Section title="Condição"><p className="text-[13px]">{p.condition}</p></Section>}
         <Section title="Dados pessoais">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">
@@ -436,12 +469,12 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
                   <button
                     type="button"
                     onClick={() => setExpandedId(isOpen ? null : a.id)}
-                    className="w-full flex items-center gap-3 py-1.5 text-left hover:bg-[var(--color-paper)] transition-colors rounded-[6px] -mx-1 px-1"
+                    className="w-full flex items-center gap-3 py-1.5 text-left hover:bg-[var(--color-paper)] transition-colors rounded-[6px] -mx-1 px-1 min-w-0"
                   >
                     <span className={`w-2 h-2 rounded-full shrink-0 ${{ avaliacao: "bg-[var(--color-cat-avaliacao-fg)]", retorno: "bg-[var(--color-cat-retorno-fg)]", tratamento: "bg-[var(--color-cat-tratamento-fg)]", pilates: "bg-[var(--color-cat-pilates-fg)]", bloqueado: "bg-[var(--color-cat-bloqueado-fg)]" }[a.category]}`} />
                     <span className="text-[12px] text-[var(--color-ink-soft)] w-[72px] shrink-0">{a.date}</span>
-                    <span className="text-[12px] font-medium">{categoryLabels[a.category]}</span>
-                    {a.note && <span className="text-[12px] text-[var(--color-ink-soft)] truncate">— {a.note}</span>}
+                    <span className="text-[12px] font-medium shrink-0">{categoryLabels[a.category]}</span>
+                    {a.note && <span className="text-[12px] text-[var(--color-ink-soft)] truncate min-w-0">— {a.note}</span>}
                     {a.status === "pendente" && <span className="ml-auto text-[10px] font-medium text-[var(--color-terracotta-600)] shrink-0">Pendente</span>}
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -513,7 +546,7 @@ function PatientSheet({ patient: p, onClose, onEditar, onAgendar }: { patient: P
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-[11px] font-medium text-[var(--color-ink-soft)] uppercase tracking-wide mb-2">{title}</p>
       {children}
     </div>
@@ -522,9 +555,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className}`}>
       <p className="text-[11px] text-[var(--color-ink-soft)]">{label}</p>
-      <p className="text-[13px] font-medium mt-0.5">{value}</p>
+      <p className="text-[13px] font-medium mt-0.5 truncate">{value}</p>
     </div>
   );
 }
