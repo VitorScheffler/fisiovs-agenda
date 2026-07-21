@@ -71,7 +71,7 @@ export function Sidebar({
   userAvatar,
   pendingCount = 0,
 }: {
-  active: "home" | "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config" | "sair";
+  active: "home" | "agenda" | "pacientes" | "equipe" | "solicitacoes" | "config" | "noc" | "sair";
   userName: string;
   userRole: "Fisioterapeuta" | "Secretária" | string;
   userAvatar?: string | null;
@@ -112,6 +112,7 @@ export function Sidebar({
       case "equipe": return "/equipe";
       case "solicitacoes": return "/solicitacoes";
       case "config": return "/configuracoes";
+      case "noc": return ""; // não faz parte da navegação principal
       default: return "";
     }
   };

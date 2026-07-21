@@ -9,13 +9,13 @@ services:
     env_file:
       - .env.production
     volumes:
-      # Persiste o arquivo SQLite fora do container, entre rebuilds/updates.
       - fisiovs_data:/data
-      # Persiste arquivos enviados pelo app (avatares, comprovantes) — sem
-      # isso, tudo em /app/public/uploads some a cada rebuild da imagem.
       - fisiovs_uploads:/app/public/uploads
     ports:
       - "3000:3000"
+    networks:
+      - default
+      - noc-shared
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -26,7 +26,14 @@ services:
       - .env.production
     depends_on:
       - fisiovs-agenda
+    networks:
+      - default
 
 volumes:
   fisiovs_data:
   fisiovs_uploads:
+
+networks:
+  default:
+  noc-shared:
+    external: true

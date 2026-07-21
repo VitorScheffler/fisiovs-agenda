@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { Modal, ModalBox, ModalHeader, ModalBody, ModalFooter, FieldGroup, TextInput, SelectInput, BtnPrimary, BtnSecondary } from "@/components/Modal";
 import type { AgendaConfig } from "@/lib/types";
 import { DEFAULT_AGENDA_CONFIG } from "@/lib/schedule-utils";
+import { useRouter } from "next/navigation";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,7 +209,6 @@ function ConfigAgendaModal({
           <FieldGroup label="Intervalo entre atendimentos">
             <SelectInput value={intervalo} onChange={setIntervalo}>
               <option value="0">Sem intervalo</option>
-
               <option value="10">10 minutos</option>
               <option value="15">15 minutos</option>
               <option value="30">30 minutos</option>
@@ -286,42 +286,6 @@ function AlterarSenhaModal({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
-// --- Modal: Sessões Ativas ---
-function SessoesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const sessions = [
-    { device: "Chrome · Windows 11", location: "Caxias do Sul, RS", time: "Agora", current: true },
-    { device: "Safari · iPhone 15", location: "Caxias do Sul, RS", time: "2 horas atrás", current: false },
-  ];
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <ModalBox>
-        <ModalHeader title="Sessões ativas" subtitle="Dispositivos com acesso à sua conta" onClose={onClose} />
-        <ModalBody>
-          <div className="flex flex-col gap-3">
-            {sessions.map((s, i) => (
-              <div key={i} className={`rounded-[12px] border px-4 py-3 flex items-start justify-between gap-3 ${s.current ? "border-[var(--color-pine-200)] bg-[var(--color-pine-50)]" : "border-[var(--color-line)]"}`}>
-                <div>
-                  <p className="text-[13px] font-medium">{s.device}</p>
-                  <p className="text-[12px] text-[var(--color-ink-soft)] mt-0.5">{s.location} · {s.time}</p>
-                </div>
-                {s.current
-                  ? <span className="text-[11px] font-medium text-[var(--color-pine-700)] bg-[var(--color-pine-100)] px-2 py-0.5 rounded-full shrink-0">Atual</span>
-                  : <button className="text-[12px] text-[var(--color-terracotta-600)] hover:underline shrink-0">Encerrar</button>
-                }
-              </div>
-            ))}
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <BtnSecondary onClick={onClose}>Fechar</BtnSecondary>
-          <BtnPrimary onClick={onClose}>Encerrar outras sessões</BtnPrimary>
-        </ModalFooter>
-      </ModalBox>
-    </Modal>
-  );
-}
-
 // --- Modal: Google Agenda ---
 function GoogleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [connecting, setConnecting] = useState(false);
@@ -393,8 +357,16 @@ export default function ConfiguracoesPage() {
   const [showPerfil, setShowPerfil] = useState(false);
   const [showAgenda, setShowAgenda] = useState(false);
   const [showSenha, setShowSenha] = useState(false);
-  const [showSessoes, setShowSessoes] = useState(false);
   const [showGoogle, setShowGoogle] = useState(false);
+  const router = useRouter();
+  const [isTi, setIsTi] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/noc/access")
+      .then((res) => (res.ok ? res.json() : { isTi: false }))
+      .then((data) => setIsTi(!!data.isTi))
+      .catch(() => setIsTi(false));
+  }, []);
 
   // Enquanto a configuração real ainda não chegou do banco, usamos um valor
   // padrão apenas para exibição/preenchimento inicial do formulário.
@@ -472,7 +444,9 @@ export default function ConfiguracoesPage() {
             <p className="text-[12px] sm:text-[13px] text-[var(--color-ink-soft)] mt-1">Gerencie o acesso à sua conta.</p>
             <div className="mt-4 sm:mt-5 space-y-3">
               <button onClick={() => setShowSenha(true)} className="w-full text-left rounded-[10px] border border-[var(--color-line)] px-4 py-3 hover:bg-[var(--color-paper)] transition-colors text-[13px] sm:text-[14px]">Alterar senha</button>
-              <button onClick={() => setShowSessoes(true)} className="w-full text-left rounded-[10px] border border-[var(--color-line)] px-4 py-3 hover:bg-[var(--color-paper)] transition-colors text-[13px] sm:text-[14px]">Sessões ativas</button>
+              {isTi && (
+                <button onClick={() => router.push("/noc")} className="w-full text-left rounded-[10px] border border-[var(--color-line)] px-4 py-3 hover:bg-[var(--color-paper)] transition-colors text-[13px] sm:text-[14px]">Painel NOC</button>
+              )}
             </div>
           </section>
         </div>
@@ -481,7 +455,6 @@ export default function ConfiguracoesPage() {
       <EditarPerfilModal open={showPerfil} onClose={() => setShowPerfil(false)} user={currentUser} />
       <ConfigAgendaModal open={showAgenda} onClose={() => setShowAgenda(false)} config={effectiveAgendaConfig} onSave={updateAgendaConfig} />
       <AlterarSenhaModal open={showSenha} onClose={() => setShowSenha(false)} />
-      <SessoesModal open={showSessoes} onClose={() => setShowSessoes(false)} />
       <GoogleModal open={showGoogle} onClose={() => setShowGoogle(false)} />
     </div>
   );

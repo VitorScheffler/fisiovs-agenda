@@ -101,3 +101,28 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/600.css";
+
+:root {
+  --color-status-up: #1f9d55;
+  --color-status-up-bg: #e3f5e9;
+  --color-status-degraded: #b7791f;
+  --color-status-degraded-bg: #fbf0dd;
+  --color-status-down: #c0392b;
+  --color-status-down-bg: #fbe4e1;
+}
+
+.dark {
+  --color-status-up: #4ade80;
+  --color-status-up-bg: #123420;
+  --color-status-degraded: #fbbf24;
+  --color-status-degraded-bg: #3a2c0e;
+  --color-status-down: #f87171;
+  --color-status-down-bg: #3a1616;
+}
+
+@theme inline {
+  --font-mono: "JetBrains Mono", monospace;
+}
