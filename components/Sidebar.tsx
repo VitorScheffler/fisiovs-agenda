@@ -125,12 +125,12 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[224px] shrink-0 border-r border-[var(--color-line)] bg-[var(--color-card)] flex flex-col">
-      <div className="px-5 py-5 border-b border-[var(--color-line)]">
+    <aside className="w-[224px] shrink-0 border-r border-[var(--color-line)] bg-[var(--color-card)] flex flex-col h-full lg:sticky lg:top-0 lg:h-screen">
+      <div className="px-5 py-5 border-b border-[var(--color-line)] shrink-0">
         <Logo />
       </div>
 
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 flex flex-col gap-1">
         {items.map((item) => {
           const isActive = item.href === activeHref;
           return (
@@ -160,13 +160,13 @@ export function Sidebar({
       <a
         href="/login"
         onClick={handleLogout}
-        className="mx-4 mb-4 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 dark:text-red-400 bg-red-50/60 dark:bg-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/60 transition-colors cursor-pointer"
+        className="mx-4 mb-4 shrink-0 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] text-red-600 dark:text-red-400 bg-red-50/60 dark:bg-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/60 transition-colors cursor-pointer"
         >
         {icons.sair}
         Sair
       </a>
 
-      <div className="px-4 py-4 border-t border-[var(--color-line)] flex items-center gap-2.5">
+      <div className="px-4 py-4 border-t border-[var(--color-line)] shrink-0 flex items-center gap-2.5">
         <Avatar src={userAvatar} initials={initials} size="w-9 h-9" className="text-[12px]" />
         <div className="leading-tight flex-1 min-w-0">
           <p className="text-[13px] font-medium truncate">{userName}</p>
