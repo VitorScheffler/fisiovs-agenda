@@ -19,6 +19,12 @@ export function getToday(): Date {
   return now;
 }
 
+/** Retorna o horário atual no formato "HH:mm", para comparar com Appointment.time */
+export function getCurrentTimeHHMM(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
 /**
  * Retorna a Segunda-feira da semana, com deslocamento opcional em semanas
  * (weekOffset: -1 = semana passada, +1 = semana que vem).

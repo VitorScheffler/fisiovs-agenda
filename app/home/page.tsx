@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { useApp } from "@/context/AppContext";
 import { categoryLabels } from "@/lib/types";
-import { getToday, toISODate, isSameDate, fromISODate, formatWeekdayShort, formatDDMMFromISO } from "@/lib/date-utils";
+import { getToday, toISODate, isSameDate, fromISODate, formatWeekdayShort, formatDDMMFromISO, getCurrentTimeHHMM } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { currentUser, appointments, patients } = useApp();
@@ -26,7 +26,12 @@ export default function HomePage() {
   const activePatients = patients.filter((p) => p.status === "ativo");
 
   const nextAppointment = appointments
-    .filter((a) => a.status !== "pendente" && a.status !== "cancelado" && a.date >= todayISO)
+    .filter((a) => {
+      if (a.status === "pendente" || a.status === "cancelado") return false;
+      if (a.date > todayISO) return true;
+      // Hoje só conta como "próximo" se o horário ainda não passou.
+      return a.date === todayISO && a.time >= getCurrentTimeHHMM();
+    })
     .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0];
 
   // Rótulo compacto de data para o próximo atendimento: "Hoje", "Amanhã" ou "Sáb, 12/07".
